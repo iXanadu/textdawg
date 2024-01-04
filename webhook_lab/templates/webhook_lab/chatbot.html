@@ -1,0 +1,112 @@
+{% extends "main/base.html" %}
+
+{% block extra_styles %}
+    <style>
+        #chat-display {
+            height: 450px;
+            overflow-y: auto;
+            background-color: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 0.25rem;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .message {
+            padding: 10px;
+            margin-bottom: 5px;
+            border-radius: 10px;
+        }
+        .user-message {
+            background-color: #d1ecf1;
+            text-align: right;
+        }
+        .response-message {
+            background-color: #d4edda;
+        }
+        .chat-input {
+            padding: 0;
+        }
+        .chat-header {
+            padding: 0;
+        }
+    <style>
+{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="container mt-4">
+        <div id="chat-header">
+            <h3>GPT+++</h3>
+        </div>
+        <div id="chat-display">
+            <!-- Messages will be appended here -->
+        </div>
+        <div class="chat-input">
+                <input type="hidden" name="user_id" value="{{ user_id }}">
+            <textarea id="user-input" class="form-control mb-2" placeholder="Enter your message" onkeypress="handleKeyPress(event)"></textarea>
+            <button id="send-button" class="btn btn-primary">Send</button>
+        </div>
+    </div>
+
+    <!-- jQuery (Full version) -->
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+
+    <!-- Bootstrap JS and Popper.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+
+    <!-- JavaScript for AJAX calls and chat functionality -->
+    <script>
+        function handleKeyPress(event) {
+            if (event.keyCode === 13) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+
+        function generateRandomID(length) {
+            var result = '';
+            var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            var charactersLength = characters.length;
+            for (var i = 0; i < length; i++) {
+                result += characters.charAt(Math.floor(Math.random() * charactersLength));
+            }
+            return result;
+        }
+
+        function sendMessage() {
+            var userInput = $("#user-input").val().trim();
+            // Add user message to chat display
+            $("#chat-display").append("<div class='message user-message'>" + userInput + "</div>");
+            $("#chat-display").scrollTop($("#chat-display")[0].scrollHeight);
+
+            $.ajax({
+                url: '/webhook/chat_receiver/', // Your webhook URL
+                type: 'POST',
+                contentType: 'application/x-www-form-urlencoded',
+                data: {
+                    Body: userInput,
+                },
+                success: function(response) {
+                    console.log("Response received:", response);
+                    $("#chat-display").append("<div class='message response-message'>Server: " + response + "</div>");
+                    $("#chat-display").scrollTop($("#chat-display")[0].scrollHeight);
+                },
+                error: function(xhr, status, error) {
+                    console.error("Error occurred:", status, error);
+                    alert("Error sending message: " + error);
+                }
+            });
+
+            // Clear the input field after sending
+            $("#user-input").val('');
+        }
+
+        $(document).ready(function() {
+            $("#send-button").click(sendMessage);
+        });
+    </script>
+</div>
+{% endblock %}
+
+
