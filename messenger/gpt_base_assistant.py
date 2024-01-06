@@ -12,8 +12,8 @@ import json
 class GPTAIBaseAssistant:
     def __init__(self, temperature, model_name):
         load_dotenv()
-        set_verbose(False)
-        set_debug(False)
+        set_verbose(True)
+        set_debug(True)
         self.model_name = model_name
         self.model_temp = temperature
         google_cse_id = os.getenv("GOOGLE_UNLIMITED_CSE_ID")

@@ -3,7 +3,7 @@
 {% block extra_styles %}
     <style>
         #chat-display {
-            height: 450px;
+            height: 375px;
             overflow-y: auto;
             background-color: #fff;
             border: 1px solid #dee2e6;
@@ -29,7 +29,7 @@
         .chat-header {
             padding: 0;
         }
-    <style>
+    </style>
 {% endblock %}
 
 {% block content %}
@@ -42,9 +42,19 @@
             <!-- Messages will be appended here -->
         </div>
         <div class="chat-input">
-                <input type="hidden" name="user_id" value="{{ user_id }}">
+            <input type="hidden" name="user_id" value="{{ user_id }}">
             <textarea id="user-input" class="form-control mb-2" placeholder="Enter your message" onkeypress="handleKeyPress(event)"></textarea>
             <button id="send-button" class="btn btn-primary">Send</button>
+            <!-- Dropdown for selecting existing topics -->
+            <select id="topic-select" name="topic_id" class="form-control mb-2">
+                <option value="">Select a topic</option>
+                <!-- Options will be populated here -->
+            </select>
+
+            <!-- Input for new topic -->
+            <input type="text" id="new-topic" name=new_topic, class="form-control mb-2" placeholder="Enter new topic" maxlength="48">
+
+
         </div>
     </div>
 
@@ -57,6 +67,59 @@
 
     <!-- JavaScript for AJAX calls and chat functionality -->
     <script>
+        $(document).ready(function() {
+            $("#topic-select").change(loadMessageHistory); // Listen for changes to the topic selection
+            $("#send-button").click(sendMessage);
+        });
+
+        function loadMessageHistory() {
+            var selectedTopicId = $('#topic-select').val();
+            if (!selectedTopicId) {
+                return;
+            }
+
+            $.ajax({
+                url: '/webhook/api/get_messages/' + selectedTopicId + '/', // Dynamic URL with topic_id
+                type: 'GET',
+                success: function(response) {
+                    $('#chat-display').empty(); // Clear existing messages
+
+                    if (response && Array.isArray(response)) {
+                        response.forEach(function(message) {
+                            var formattedMessage = "<div class='message " + (message.role === "AI" ? "response-message" : "user-message") + "'>" + message.message_text + "</div>";
+                            $("#chat-display").append(formattedMessage);
+                        });
+                        $("#chat-display").scrollTop($("#chat-display")[0].scrollHeight);
+                    } else {
+                        console.error("Unexpected response format:", response);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error("Error loading messages:", status, error);
+                }
+            });
+        }
+        function loadTopics() {
+            $.ajax({
+                url: '/webhook/api/list_topics/', // Replace with your API URL to fetch topics
+                method: 'GET',
+                success: function(response) {
+                    // Populate dropdown with topics
+
+                    console.log(response);
+                    response.forEach(function(topic) {
+                        $('#topic-select').append(new Option(topic.topic_text, topic.id));
+
+                    });
+                },
+                error: function() {
+                    alert("Error loading topics");
+                }
+            });
+        }
+
+        loadTopics(); // Load topics when the page loads
+
         function handleKeyPress(event) {
             if (event.keyCode === 13) {
                 event.preventDefault();
@@ -64,33 +127,41 @@
             }
         }
 
-        function generateRandomID(length) {
-            var result = '';
-            var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-            var charactersLength = characters.length;
-            for (var i = 0; i < length; i++) {
-                result += characters.charAt(Math.floor(Math.random() * charactersLength));
-            }
-            return result;
-        }
-
         function sendMessage() {
-            var userInput = $("#user-input").val().trim();
+            var user_input = $("#user-input").val().trim();
+            var topic_id = $('#topic-select').val();
+            var new_topic = $('#new-topic').val().trim();  // Get the new topic text
+            if (new_topic != '')
+                topic_id = 0;
+
+            // Check if a topic is selected or a new topic is entered
+            if (!topic_id && !new_topic) {
+                alert("Please select a topic or enter a new one.");
+                return;
+            }
             // Add user message to chat display
-            $("#chat-display").append("<div class='message user-message'>" + userInput + "</div>");
+            $("#chat-display").append("<div class='message user-message'>" + user_input + "</div>");
             $("#chat-display").scrollTop($("#chat-display")[0].scrollHeight);
 
             $.ajax({
-                url: '/webhook/chat_receiver/', // Your webhook URL
+                url: '/webhook/chat_receiver/',
                 type: 'POST',
                 contentType: 'application/x-www-form-urlencoded',
                 data: {
-                    Body: userInput,
+                    user_input: user_input,
+                    new_topic: new_topic,
+                    topic_id: topic_id
                 },
                 success: function(response) {
-                    console.log("Response received:", response);
+
                     $("#chat-display").append("<div class='message response-message'>Server: " + response + "</div>");
                     $("#chat-display").scrollTop($("#chat-display")[0].scrollHeight);
+
+                    if (new_topic) {
+                        var newOption = new Option(new_topic, new_topic, true, true);
+                        $('#topic-select').append(newOption).trigger('change');
+                        $('#new-topic').val('');  // Clear new topic field
+                    }
                 },
                 error: function(xhr, status, error) {
                     console.error("Error occurred:", status, error);
@@ -100,11 +171,11 @@
 
             // Clear the input field after sending
             $("#user-input").val('');
+            $("#new-topic").val('');
         }
 
-        $(document).ready(function() {
-            $("#send-button").click(sendMessage);
-        });
+        {#$(document).ready(function() {#}
+        {#    $("#send-button").click(sendMessage);#}
     </script>
 </div>
 {% endblock %}
