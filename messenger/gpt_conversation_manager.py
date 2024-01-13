@@ -27,13 +27,12 @@ class GPTConversationManager:
         else:
             self.topic = self.get_topic_by_text(user, topic_text)
 
-
     def get_topic_by_text(self, user, topic_text):
-            try:
-                topic = ChatTopic.objects.get(user=user, topic_text=topic_text)
-                return topic
-            except ChatTopic.DoesNotExist:
-                return None
+        try:
+            topic = ChatTopic.objects.get(user=user, topic_text=topic_text)
+            return topic
+        except ChatTopic.DoesNotExist:
+            return None
 
     def get_topic_by_id(self, user, topic_id):
         try:
@@ -81,7 +80,7 @@ class GPTConversationManager:
             self.logger.error(f"Error adding message: {e}")
             return None
 
-    def create_complete_io_records(self,topic):
+    def create_complete_io_records(self, topic):
         messages = ChatMessage.objects.filter(topic=topic).order_by('timestamp')
 
         records = []
@@ -127,6 +126,7 @@ class GPTConversationManager:
             chat_history.save_context({"input": input_text}, {"output": output_text})
 
         return chat_history
+
     # Call the function to process records
     def respond_to_input(self, user_input):
         if not self.topic:
@@ -146,5 +146,3 @@ class GPTConversationManager:
         # self.add_message_to_history(msg_user, user_input, 'Human')
         # self.add_message_to_history(msg_user, response['output'], 'AI')
         return response
-
-

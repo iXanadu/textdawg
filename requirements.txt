@@ -1,0 +1,5 @@
+django
+langchain
+langchain_community
+bootstrap
+python-dotenv
