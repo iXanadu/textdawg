@@ -1,5 +1,5 @@
 django
 langchain
 langchain_community
-bootstrap
+django-cors-headers
 python-dotenv
