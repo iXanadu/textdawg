@@ -2,3 +2,8 @@
 db.sqlite3
 chat_server.log
 main/__pycache__/app_logger.cpython-312.pyc
+**/pycache__/
+__pycache__/
+*.py[cod]
+*.log
+*.pot
