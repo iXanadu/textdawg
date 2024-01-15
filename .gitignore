@@ -1,4 +1,5 @@
 .env
+.python-version
 db.sqlite3
 chat_server.log
 main/__pycache__/app_logger.cpython-312.pyc
