@@ -11,9 +11,9 @@ server {
 	}
 
 	location /static/ {
-        autoindex on;
-        alias /root/textdawg/textDawg/staticfiles/; // => the path to the static folder
-    }
+		autoindex on;
+		alias /var/www/textdawg/static/;
+	}
 
 }
 

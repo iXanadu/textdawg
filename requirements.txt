@@ -3,3 +3,6 @@ langchain
 langchain_community
 django-cors-headers
 python-dotenv
+google-api-python-client>=2.100.0
+duckduckgo-search
+openai

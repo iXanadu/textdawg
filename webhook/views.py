@@ -64,7 +64,7 @@ def chat_receiver(request):
 
         return HttpResponse(response['output'], status=200)
     else:
-        return HttpResponse('Method not allowed', status=405)
+        return HttpResponse('Method not allowed(invalid)', status=405)
 
 
 @csrf_exempt  # Disable CSRF protection for this view

@@ -61,6 +61,12 @@ MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
 ]
 
+CORS_ALLOW_ALL_ORIGINS = True
+CSRF_TRUSTED_ORIGINS = ["http://127.0.0.1", "http://textdawg.com", "http://45.33.94.207",
+                        "https://127.0.0.1", "https://textdawg.com", "https://45.33.94.207"]
+
+
+
 ROOT_URLCONF = 'textDawg.urls'
 
 TEMPLATES = [
@@ -128,13 +134,12 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
-STATIC_URL = '/static/'
-STATIC_URL = '/static/'
-STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'static'),
-]
+STATIC_URL = 'static/'
+#STATICFILES_DIRS = ["/var/www/textdawg/static" ]
+#    os.path.join(BASE_DIR, 'staticfiles'),
 
-STATIC_ROOT =  os.path.join(BASE_DIR, 'staticfiles')
+STATIC_ROOT =  "/var/www/textdawg/static"
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
