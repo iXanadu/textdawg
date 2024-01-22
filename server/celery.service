@@ -1,0 +1,17 @@
+[Unit]
+Description=Celery Service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/root/textdawg
+ExecStart=/root/textdawg/server/start-celery.sh
+#ExecStart=/bin/echo "Celery Test"
+
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+

@@ -14,20 +14,45 @@ SECRET_KEY = 'django-insecure-aek1*q7zk3)p8)4nn9^o$3s!ilfs4(9%d&t!k(0o!tcyd9$ccv
 DEBUG = True
 
 ALLOWED_HOSTS = ["127.0.0.1", "textdawg.com", "45.33.94.207"]
+# settings.py
+
+# Celery Settings
+#CELERY_BROKER_URL = 'amqp://textdawg:@T3xtD@wg@45.33.95.100:5432/vhost'
+CELERY_BROKER_URL = 'amqp://guest:guest@localhost:5672/'
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+
+
+
 
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+    },
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
         },
+        'file': {
+            'class': 'logging.FileHandler',
+            'filename': '/root/textdawg/logfile.log',  # Keep your existing path
+            'formatter': 'verbose',
+        },
     },
     'loggers': {
         '': {  # Root logger
-            'handlers': ['console'],
+            'handlers': ['console', 'file'],
             'level': 'INFO',
             'propagate': True,
+        },
+        'celery': {  # Celery-specific logger
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,  # Prevents duplicate logging
         },
     },
 }
@@ -91,11 +116,16 @@ WSGI_APPLICATION = 'textDawg.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
+#        'ENGINE': 'django.db.backends.sqlite3',
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': "textdawg",
+        'USER': "textdawg",
+        'PASSWORD': "@T3xtD@wg",
+        'HOST': "45.33.95.100",
+        'PORT': "5432"
     }
 }
 

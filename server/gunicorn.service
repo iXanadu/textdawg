@@ -1,0 +1,12 @@
+[Unit]
+Description=gunicorn daemon
+After=network.target
+
+[Service]
+User=root
+Group=root
+WorkingDirectory=/root/textdawg
+ExecStart=/root/.pyenv/versions/3.12.0/envs/textdawg-3.12.0/bin/gunicorn textDawg.wsgi:application —bind 127.0.0.1:8000 --error-logfile /var/log/gunicorn/error.log --access-logfile /var/log/gunicorn/access.log
+
+[Install]
+WantedBy=multi-user.target

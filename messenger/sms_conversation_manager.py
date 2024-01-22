@@ -104,22 +104,22 @@ class SMSConversationManager:
             chat_history.save_context({"input": input_text}, {"output": output_text})
 
         return chat_history
-    # Call the function to process records
-    def respond_to_input(self, phone_number, user_input):
-        msg_user = self.get_or_add_message_user(phone_number, user_input)
-        chat_history = self.process_chat_history(phone_number)
+
+    def respond_to_input(self, user_phone, system_phone, user_input):
+        msg_user = self.get_or_add_message_user(user_phone, user_input)
+        chat_history = self.process_chat_history(user_phone)
 
         if msg_user.message_count == 1:
             prompt = self.assistant.get_ai_instructions()
             self.add_message_to_history(msg_user, prompt,'System')
         else:
-            self.fub_handler.log_fub_text_message(False,msg_user.fubId,'7577528095',
+            self.fub_handler.log_fub_text_message(False,msg_user.fubId,system_phone,
                                                   msg_user.phone_number, user_input)
         self.assistant.setup_agent(chat_history)
         response = self.assistant.respond_to_input(user_input)
 
-        self.fub_handler.log_fub_text_message(True, msg_user.fubId,msg_user.phone_number,
-                        '7577528095',response['output'])
+        self.fub_handler.log_fub_text_message(True, msg_user.fubId,msg_user.phone_number, system_phone,
+                      response['output'])
         self.add_message_to_history(msg_user, user_input, 'Human')
         self.increment_user_message_count(msg_user)
         self.add_message_to_history(msg_user, response['output'], 'AI')

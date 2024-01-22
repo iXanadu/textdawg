@@ -1,6 +1,7 @@
 .env
 .python-version
 db.sqlite3
+db.sqlite3.OLD
 chat_server.log
 main/__pycache__/app_logger.cpython-312.pyc
 **/pycache__/

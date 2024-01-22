@@ -1,0 +1,133 @@
+apt-get update && apt-get upgrade
+hostnamectl set-hostname xxxx-server-name
+
+
+edit /etc/hosts
+ip-of-server	xxxx-server-name
+
+Add Limited user
+adduser xxxxxxx - pwd, Name, 
+
+Add user to sudo
+adduser xxxxx sudo
+
+Login as limited user
+
+ssh Keys:
+pwd - confirm home folder
+mkdir -p .ssh ~/.ssh
+(get id_rsa.pub from local machine)
+From local machine
+scp id_rsa.pub xxxx@ip:~/.ssh/authorized_keys
+Set .ssh permissions Host Machine
+sudo chmod 700 ~/.ssh
+sudo chmod 600 ~/.ssh/*
+
+login to host via ssh no pass
+
+disable root login
+disable passwd authentidation
+sudo nano /etc/ssh/sshd_config
+
+PermitRootLogin no
+PasswordAuthentication no
+
+Restart ssh service
+sudo sysemctl restart sshd
+
+
+Setup Firewall
+
+sudo apt-get install ufw
+
+sudo ufw default allow outgoing
+sudo ufw default deny incoming
+sudo ufw allow ssh
+— sudo urf allow 8000 (to allow django for now, not 80)
+sudo ufw enable
+sudo ufw status
+
+
+#We need This to support celery for async processing
+sudo apt-get install rabbitmq-server
+sudo systemctl enable rabbitmq-server
+sudo systemctl start rabbitmq-server
+# See if running
+sudo systemctl is-enabled rabbitmq-server
+# Can disable with sudo systemctl disable rabbitmq-server
+
+# Setup nginx
+sudo apt install nginx
+ls /etc/nginx
+sudo rm /etc/nginx/sites-enabled/default 
+sudo cp server/nginx-textdawg /etc/nginx/sites-available/textdawg
+sudo ln -s /etc/nginx/sites-available/textdawg /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl restart nginx
+sudo systemctl status nginx.service
+
+
+Deploy Django
+Local Machine
+(virtual environment?)
+pip freeze > requirements.txt
+scp -r project-folder user@host:locaion-on-server (user home at first?)
+
+
+Setup Project
+Setup virtual env
+
+sudo apt-get install python3-pip
+sudo apt-get install python3-venv
+python3 -m venv ProjectFolder/venv
+cd ProjectFolder
+source venv/bin/activate
+pip install -r requirements.txt
+
+
+Setup settings.py AND TEST
+
+ALLOWED_HOSTA = [IP-or-Name-of-Server]
+Add STATIC_ROOT = os.path.join(BASE_DIR, ‘statis’) (near STATIC_URL)
+python manage.py collectstatic
+python manage.py runserver 0.0.0.0:8000
+(allows you to run on server IP (http://ip:8000)
+
+pip install gunicorn
+gunicorn textdawg.wsgi:application —bind 127.0.0.1:8000
+
+pip install celery
+sudo cp server/celery.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable celery.service
+sudo systemctl start celery.service
+- sudo systemctl status celery.service
+- journalctl -u celery.service
+
+
+# Get where gunicorn is (which pyenv)
+find /root/.pyenv -name "gunicorn"
+# Create the service file
+cp server/gunicorn.service /etc/systemd/system/gunicorn.service
+sudo systemctl start gunicorn
+sudo systemctl enable gunicorn
+sudo systemctl restart gunicorn
+
+
+TEST EVERYTHING
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

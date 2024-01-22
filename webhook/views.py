@@ -4,11 +4,16 @@ from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST, require_GET
 from main.models import ChatTopic, ChatMessage
-from messenger.sms_conversation_manager import SMSConversationManager
 from messenger.gpt_conversation_manager import GPTConversationManager
+from twilio.request_validator import RequestValidator
+from twilio.twiml.messaging_response import MessagingResponse
+from .sms_tasks import process_sms_message
+
+
+import os
+
 
 logger = logging.getLogger(__name__)
-# sms_client = Client(os.getenv('MY_ACCOUNT_SID'),os.getenv('TWILIO_AUTH_TOKEN'))
 
 @require_POST
 def create_chat_topic(request):
@@ -70,22 +75,59 @@ def chat_receiver(request):
 @csrf_exempt  # Disable CSRF protection for this view
 def sms_receiver(request):
     if request.method == 'POST':
-        print("In sms_receiver, request=({reqest})")
-        from_phone = request.POST.get('From')
-        to_phone = request.POST.get('To')
-        user_input = request.POST.get('Body')
-        digits = ''.join(filter(str.isdigit, from_phone))
-        if len(digits) == 10:
-            from_phone =  f"{digits[0:3]}-{digits[3:6]}-{digits[6:10]}"
-        elif len(digits) == 11:
-            from_phone =  f"{digits[1:4]}-{digits[4:7]}-{digits[7:11]}"
+
+        logger.info(f"In sms_receiver POST is {request.POST}")
+        # Get the full request URL
+        url = 'http://textdawg.com/webhook/sms_receiver/'
+
+        # Get the POST data and headers
+        post_vars = request.POST
+        twilio_signature = request.headers.get('X-Twilio-Signature')
+
+        # Create an instance of the RequestValidator
+        validator = RequestValidator(os.getenv('TWILIO_AUTH_TOKEN'))
+
+        logger.info(f"Passed validator")
+
+        # Validate the request
+        if validator.validate(url, post_vars, twilio_signature):
+            x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+            if x_forwarded_for:
+                ip = x_forwarded_for.split(',')[0]
+            else:
+                ip = request.META.get('REMOTE_ADDR')
+
+            from_phone = request.POST.get('From')
+            to_phone = request.POST.get('To')
+            user_input = request.POST.get('Body')
+            digits = ''.join(filter(str.isdigit, from_phone))
+            if len(digits) == 10:
+                from_phone =  f"{digits[0:3]}-{digits[3:6]}-{digits[6:10]}"
+            elif len(digits) == 11:
+                from_phone =  f"{digits[1:4]}-{digits[4:7]}-{digits[7:11]}"
+            else:
+                return HttpResponse(f"from-Phone must be 10 (or 11) digits ({digits})", status=405)
+
+            digits = ''.join(filter(str.isdigit, to_phone))
+            if len(digits) == 10:
+                to_phone =  f"{digits[0:3]}-{digits[3:6]}-{digits[6:10]}"
+            elif len(digits) == 11:
+                to_phone =  f"{digits[1:4]}-{digits[4:7]}-{digits[7:11]}"
+            else:
+                return HttpResponse(f"to-Phone must be 10 (or 11) digits ({digits})", status=405)
+
+
+            logger.info(f"Calling process_sms_message.delay with {to_phone}, {from_phone}, {user_input}")
+            
+            #process_sms_message(to_phone, from_phone, user_input)
+            process_sms_message.delay(to_phone, from_phone, user_input)
+
+            sms_resp = MessagingResponse()
+            logger.info(f"Returning sms_resp: {sms_resp}")
+
+            return HttpResponse(sms_resp, status=200)
         else:
-            return HttpResponse(f"Phone must be 10 (or 11) digits ({digits})", status=200)
-
-        c = SMSConversationManager(temperature=0.0, model_name="gpt-4-1106-preview")
-        response = c.respond_to_input(from_phone, user_input)
-
-        return HttpResponse(response['output'], status=200)
+            return HttpResponse('Method not allowed', status=405)
     else:
         return HttpResponse('Method not allowed', status=405)
 
