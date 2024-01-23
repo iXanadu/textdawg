@@ -1,11 +1,13 @@
 import os
 from celery import shared_task
 from twilio.rest import Client
-from messenger.sms_conversation_manager import SMSConversationManager
+from .sms_conversation_manager import SMSConversationManager
 import logging
-
-
 logger = logging.getLogger(__name__)
+
+logger.info(f"Entering messenger.smstasks.process_sms_message")
+
+
 
 @shared_task
 def process_sms_message(to_phone, from_phone, user_input):
