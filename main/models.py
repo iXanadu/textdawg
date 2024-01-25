@@ -73,3 +73,21 @@ class ChatMessage(models.Model):
 
     def __str__(self):
         return f"{self.role} message in {self.topic.topic_text} at {self.timestamp}"
+
+    from django.db import models
+
+
+class OpenAIPrompt(models.Model):
+    key = models.CharField(max_length=255, unique=True)
+    prompt_text = models.TextField()
+    description = models.TextField(blank=True, null=True)
+    category = models.CharField(max_length=100, blank=True, null=True)
+    isActive = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    version = models.IntegerField(default=1)
+    variables = models.TextField(blank=True, null=True)  # A comma-separated list of variable names
+
+    def __str__(self):
+        return self.key
+

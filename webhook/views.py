@@ -31,19 +31,12 @@ def list_chat_topics(request):
 @login_required
 @require_GET
 def get_chat_messages(request, topic_id):
-    print(request.GET)
-    print(f"topic_id:{topic_id}")
-
     messages = ChatMessage.objects.all().values('message_text', 'role', 'timestamp', 'topic_id')
-    print (messages)
     response = JsonResponse(list(messages), safe=False)
-    print(response)
 
     messages = ChatMessage.objects.filter(topic_id=topic_id).order_by('timestamp').values('message_text', 'role',
                                                                                           'timestamp')
-    print (messages)
     response = JsonResponse(list(messages), safe=False)
-    print (response)
     return response
 
 

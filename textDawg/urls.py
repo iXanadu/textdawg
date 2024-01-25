@@ -7,9 +7,11 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
+    path('main/', include('main.urls')),
     path('webhook/', include('webhook.urls')),
     path('webhook_lab/', include('webhook_lab.urls')),  # Include webhook_lab URLs
     path('dashboard/', views.dashboard, name='dashboard'),
+    path('prompts/', views.prompt_management, name='prompt_management'),
     path('login/', LoginView.as_view(template_name='main/login.html'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(next_page='/login/'), name='logout'),
     path('admin/', admin.site.urls),

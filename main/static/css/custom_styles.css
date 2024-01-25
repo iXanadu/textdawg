@@ -1,0 +1,9 @@
+.custom-modal-size {
+    max-width: 90%; /* Adjust the width as needed */
+}
+
+.custom-textarea {
+    height: 300px; /* Adjust the height as needed */
+    resize: vertical; /* Allows vertical resizing */
+}
+
