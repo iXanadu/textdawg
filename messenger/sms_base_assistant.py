@@ -1,19 +1,24 @@
+import logging
 from dotenv import load_dotenv
 from langchain.output_parsers import StructuredOutputParser, ResponseSchema
 from langchain_community.chat_models import ChatOpenAI
 from langchain_community.tools import DuckDuckGoSearchRun, Tool
 from langchain.agents import initialize_agent, AgentType
 from langchain_community.utilities import GoogleSearchAPIWrapper
+from crm.fub_api_handler import FUBApiHandler
+from langchain.chains import LLMChain
+from langchain.prompts import PromptTemplate
 from langchain.globals import set_verbose, set_debug
 import os
 import json
-from main.models import TextCode, FubMessageHistory, FUBMessageUser
+from main.models import TextCode, OpenAIPrompt
 
 # import pyowm
 # from pyowm.owm import OWM
 # from pyowm.commons import cityidregistry
 # from langchain.utilities.openweathermap import OpenWeatherMapAPIWrapper
 
+logger = logging.getLogger(__name__)
 
 
 class SMSAIBaseAssistant:
@@ -23,15 +28,56 @@ class SMSAIBaseAssistant:
         set_debug(False)
         self.model_name = model_name
         self.model_temp = temperature
+        self.fub_handler = FUBApiHandler(os.getenv('FUB_API_URL'), os.getenv('FUB_API_KEY'),
+                                         os.getenv('FUB_X_SYSTEM'), os.getenv('FUB_X_SYSTEM_KEY'))
         google_cse_id = os.getenv("GOOGLE_EVH_CSE_ID")
         self.property_search = GoogleSearchAPIWrapper(google_cse_id=google_cse_id)
         self.general_search = DuckDuckGoSearchRun()
         # self.weather = OpenWeatherMapAPIWrapper()
         self.llm = ChatOpenAI(temperature=self.model_temp, model=self.model_name)
 
-    def setup_agent(self, memory):
+    def setup_agent(self, memory, msg_user):
+        self.msg_user = msg_user
         self.memory = memory
         self.conversational_agent = self.initialize_conversational_agent()
+    def process_and_update_user_name(self, input):
+        update_data = {}
+        logger.info(f"IN process_and_update_user_name: {input}")
+        parts = input.split()
+        first_name = parts[0] if parts else None
+        last_name = parts[1] if len(parts) > 1 else None
+        if self.msg_user:
+            # Update the msg_user object with new names
+            if first_name:
+                self.msg_user.firstname = first_name
+                update_data['firstName'] = self.msg_user.firstname
+            if last_name:
+                self.msg_user.lastname = last_name
+                update_data['lastName'] = self.msg_user.lastname
+            # Save the updated user record
+            self.msg_user.save()
+            self.fub_handler.update_person(self.msg_user.fubId,update_data)
+        else:
+            logger.error("No user record is associated with this instance.")
+
+        return(f"User name updated to {first_name} {last_name}")
+
+    def process_and_update_user_email(self, input):
+        update_data = {}
+        logger.info(f"IN process_and_update_user_email: {input}")
+        email = input
+        if self.msg_user:
+            # Update the msg_user object with new names
+            if email:
+                self.msg_user.email = email
+                update_data['email'] = self.msg_user.email
+            self.msg_user.save()
+            self.fub_handler.update_person(self.msg_user.fubId,update_data)
+        else:
+            logger.error("No user record is associated with this instance.")
+
+        return(f"User email updated to {email}")
+
 
 
     def property_results(self, query):
@@ -49,61 +95,32 @@ class SMSAIBaseAssistant:
            return {'textcode': r.textcode, 'link': r.link, 'property_address': r.property_address, 'instructions': r.instructions}
         else:
             return {'textcode': '', 'link': '', 'property_address': '', 'instructions': ''}
+    def get_userinfo_string(self):
+        name = "the person"
+        if not self.msg_user.firstname:
+            nameStr = "You do not know the name of the person, you should ask"
+            phoneStr = f"Their telephone number is {self.msg_user.phone_number}"
+        else:
+            name = self.msg_user.firstname
+            nameStr = f"You are texting with {self.msg_user.firstname} {self.msg_user.lastname}"
+            phoneStr = f"{self.msg_user.firstname}'s phone number is {self.msg_user.phone_number}"
+
+        if not self.msg_user.email:
+            emailStr = f"You do not {name}'s know email address, you should ask, but only if appropriate to set an appt"
+        else:
+            emailStr = f"{name}'s email address is {self.msg_user.email}"
+
+        sms_userinfo = f"Information about the person you are texting with:\n{nameStr}\n{phoneStr}\n{emailStr}\n"
+        return(sms_userinfo)
 
     def get_ai_instructions(self):
-        ai_instructions = """
-
-You are Kelly, an upbeat and engaging inside sales associate at Trustworthy Agents Group, known for your witty charm. You are conversational like the “girl next door”
-
-Take you time to carefully follow the instructions below.  Test your answers before responding.  This is an SMS conversation, delays are normal.  So take your time to fully understand and answer the question. 
-
-Start each new conversation with your introduction: "Hello! I'm Kelly from Trustworthy Agents Group. And you are?"
-
-It is SUPER important that you introduce your self and obtain the name of the person you are speaking with. 
-
-If the human says their name, acknowledge it as their identity. For example, if someone says "John", respond with "Great to meet you, John! How can I help you in your real estate journey today?”  Occasionally use their name in a response to be more personal. 
-
-Respond to any question about realtors or agents by recommending the Trustworthy Agents Group.  For company information refer them to explorevirginiahomes.com/about/
-
-Your main goal is to connect people with our realtors. If someone seems ready, ask for their contact details for a follow-up.
-
-For single-word queries like '1640', use the get_text_code function. If there is no text code returned from get_text_code, tell them so, and ask for clarification.  
-
-Keep your responses light and engaging when addressing real estate questions, especially about properties. Example: "1640, you say? That's a gem in Virginia Beach. Here's everything you need to know: link."
-
-End responses with open ended questions. Use these questions to keep the conversation flowing:
-  *  “What type of property catches your eye, John?"
-  * “Planning a big move soon, or just curious about the market?"
-  * “Can I find you more info on something specific?"
-
-
-Restrict all responses to the 757 area code. 
-
-Never state the status of a listing for sale, the market changes to quickly.  If questioned about the status of a property, refer to a Trustworthy Agents realtor.
-
-When asked about actual properties, use explorevirginiahomes.com. Return ONLY a single link when asked about a particular city.  Here are the most popular links
-  * Virginia Beach: explorevirginiahomes.com/virginia-beach
-  * Chesapeake: explorevirginiahomes.com/chesapeake
-  * Norfolk: explorevirginiahomes.com/norfolk
-  * Open Houses:  explorevirginiahomes.com/open-houses-in-757
-
-
-
-With the exception of a link returned by get_text_code, do not provide links to specific properties from explorevirginiahomes.com.  Instead return links to the city or community level. 
-
-If you don’t know what to say - DO NOT just repeat your previous answer, ask clarifying questions
-
-Remember not to:
-  * Say "_____ is not readily available."
-  * Say "I’ll get back to you.”
-  * Say “assist” 
-  * Say "How can I assist you today?”
-  * Say “Is there anything else I can assist you with?”
-
-
-
-        """
-        return ai_instructions
+        sms_userinfo = self.get_userinfo_string()
+        active_prompt = OpenAIPrompt.get_active_prompt("SMS-TextCode-Base-Prompt")
+        if active_prompt:
+            formatted_prompt = active_prompt.prompt_text.replace("{SMS-UserInfo}", sms_userinfo)
+            return(formatted_prompt)# Use the active prompt
+        else:
+            return("")
 
     def process_response(self, response):
         # Check if response is a string
@@ -123,6 +140,16 @@ Remember not to:
             return response
 
     def initialize_conversational_agent(self):
+        process_and_update_user_name = Tool(
+            name="process_and_update_user_name",
+            description="Useful when you get a new or different name from the person you are chatting with",
+            func=self.process_and_update_user_name
+        )
+        process_and_update_user_email = Tool(
+            name="process_and_update_user_email",
+            description="Useful when you get a new or different email from the person you are chatting with",
+            func=self.process_and_update_user_email
+        )
         property_search = Tool(
             name="property Search",
             description="Useful for ALL property searches",
@@ -151,7 +178,7 @@ Remember not to:
         response_schemas = [answer_schema]
         output_parser = StructuredOutputParser.from_response_schemas(response_schemas)
 
-        tools = [property_search, text_tool, general_search]
+        tools = [property_search, text_tool, general_search,process_and_update_user_name,process_and_update_user_email]
         # tools = [property_search, text_tool, general_search, weather_tool]
         # tools = [text_tool, general_search]
 

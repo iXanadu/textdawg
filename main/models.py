@@ -1,7 +1,10 @@
+import logging
 from django.db import models
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+
+logger = logging.getLogger(__name__)
 
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
@@ -78,7 +81,7 @@ class ChatMessage(models.Model):
 
 
 class OpenAIPrompt(models.Model):
-    key = models.CharField(max_length=255, unique=True)
+    key = models.CharField(max_length=255)
     prompt_text = models.TextField()
     description = models.TextField(blank=True, null=True)
     category = models.CharField(max_length=100, blank=True, null=True)
@@ -88,6 +91,30 @@ class OpenAIPrompt(models.Model):
     version = models.IntegerField(default=1)
     variables = models.TextField(blank=True, null=True)  # A comma-separated list of variable names
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['key', 'version'], name='unique_key_version')
+        ]
+
+    @classmethod
+    def get_active_prompt(cls, key):
+        try:
+            prompts = cls.objects.filter(key=key).order_by('-version')
+            # logger.info(f"Found {prompts.count()} prompts with key '{key}'.")
+
+            for prompt in prompts:
+                # logger.info(f"Checking prompt: {prompt.key}, Version: {prompt.version}, IsActive: {prompt.isActive}")
+                if prompt.isActive or prompts.count() == 1:
+                    # logger.info(f"Returning active prompt: {prompt}")
+                    return prompt
+
+            logger.warning(f"No active prompt found for key '{key}'.")
+            return None
+
+        except Exception as e:
+            logger.error(f"Error in get_active_prompt: {str(e)}")
+            return None
+
     def __str__(self):
-        return self.key
+        return f"{self.key} (Version {self.version})"
 

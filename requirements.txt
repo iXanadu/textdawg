@@ -8,4 +8,4 @@ duckduckgo-search
 openai
 twilio
 celery
-psycopg2-binary
+psycopg2

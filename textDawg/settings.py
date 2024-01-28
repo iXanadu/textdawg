@@ -39,7 +39,7 @@ LOGGING = {
         },
         'file': {
             'class': 'logging.FileHandler',
-            'filename': '/root/textdawg/logfile.log',  # Keep your existing path
+            'filename': os.path.join(BASE_DIR, 'logfile.log'),
             'formatter': 'verbose',
         },
     },
@@ -60,19 +60,19 @@ LOGGING = {
 # Application definition
 
 INSTALLED_APPS = [
-    'webhook.apps.WebhookConfig',
-    'webhook_lab.apps.WebhookLabConfig',
-    'crm.apps.CrmConfig',
-    'messenger.apps.MessengerConfig',
-    'main.apps.MainConfig',
-    'user_management.apps.UserManagementConfig',
-    'django.contrib.admin',
+'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'corsheaders',
+    'webhook.apps.WebhookConfig',
+    'webhook_lab.apps.WebhookLabConfig',
+    'crm.apps.CrmConfig',
+    'messenger.apps.MessengerConfig',
+    'main.apps.MainConfig',
+    'user_management.apps.UserManagementConfig',
 ]
 
 MIDDLEWARE = [
@@ -97,8 +97,8 @@ ROOT_URLCONF = 'textDawg.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates']
-        ,
+        # 'DIRS': [BASE_DIR / 'templates'],
+        'DIRS': [os.path.join(BASE_DIR, 'main/templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [

@@ -38,14 +38,14 @@
                 </div>
                 <div class="modal-body">
                     <form id="addPromptForm">
+                        <input type="hidden" id="originalVersion" value="">
                         <div class="mb-3">
                             <label for="newPromptKey" class="form-label">Key</label>
                             <input type="text" class="form-control" id="newPromptKey" required>
                         </div>
                         <div class="mb-3">
                             <label for="newPromptText" class="form-label">Prompt Text</label>
-			    <textarea class="form-control custom-textarea" id="newPromptText" required></textarea>
-
+			                <textarea class="form-control custom-textarea" id="newPromptText" required></textarea>
                         </div>
                         <div class="mb-3">
                             <label for="newPromptDescription" class="form-label">Description</label>

@@ -5,5 +5,8 @@
 .custom-textarea {
     height: 300px; /* Adjust the height as needed */
     resize: vertical; /* Allows vertical resizing */
+    overflow: auto; /* Allows scrolling if the text overflows */
+    padding: 10px;
+    border: 1px solid #ccc;
 }
 

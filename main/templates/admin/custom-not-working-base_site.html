@@ -1,0 +1,25 @@
+{% extends "admin/base.html" %}
+{% load i18n %}
+
+{% block usertools %}
+    {% if user.is_active and user.is_staff %}
+        <ul id="user-tools">
+            <li>
+                <a href="{% url 'dashboard' %}" class="viewsitelink">{% trans 'View site' %}</a>
+            </li>
+            {% if user.is_superuser %}
+                <li>
+                    <a href="{% url 'admin:password_change' %}">{% trans 'Change password' %}</a>
+                </li>
+                <li>
+                    <a href="{% url 'admin:logout' %}">{% trans 'Log out' %}</a>
+                </li>
+            {% endif %}
+        </ul>
+    {% endif %}
+    {% block welcome-msg %}
+        <p class="welcome-msg">
+            {% blocktrans with user.get_username as username %}Welcome, {{ username }}.{% endblocktrans %}
+        </p>
+    {% endblock %}
+{% endblock %}

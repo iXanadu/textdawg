@@ -3,6 +3,8 @@ import logging
 from urllib.parse import urlencode, urljoin
 import csv
 
+logger = logging.getLogger(__name__)
+
 class FUBApiHandler:
     def __init__(self, api_url, api_key,x_system, x_system_key):
         """
@@ -12,6 +14,7 @@ class FUBApiHandler:
         ;param x_system: FUB's System Name
         ;param x_system_key: FUB's System Key
         """
+        logging.info(f"{api_url,api_key}")
         self.base_url = api_url.rstrip('/') + '/'  # Ensure trailing slash
         self.api_key = api_key
         self.x_system = x_system
@@ -252,14 +255,29 @@ class FUBApiHandler:
         return f'CSV file saved to {csv_file_path}'
 
     def update_person(self, person_id, update_data):
-        """
-        Update a person's information in FUB.
-        :param person_id: ID of the person to update.
-        :param update_data: Data to update for the person.
-        :return: JSON response from the API.
-        """
+        payload = {}
+
+        # Add firstName and lastName to payload if they exist and are not empty
+        if 'firstName' in update_data and update_data['firstName']:
+            payload['firstName'] = update_data['firstName']
+        if 'lastName' in update_data and update_data['lastName']:
+            payload['lastName'] = update_data['lastName']
+
+        # Handle emails separately
+        if 'email' in update_data and update_data['email']:
+            payload['emails'] = [{
+                "isPrimary": True,
+                "value": update_data['email'],
+                "type": "home"
+            }]
+
+        # Check if the payload is empty
+        if not payload:
+            logger.error("FUB-update_person called without data")
+            return None
+
         path = f'/v1/people/{person_id}'
-        return self._make_request('PUT', path, data=update_data)
+        return self._make_request('PUT', path, data=payload)
 
     def add_lead(self, update_data):
         """

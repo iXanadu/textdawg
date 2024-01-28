@@ -1,10 +1,15 @@
+import logging
 from dotenv import load_dotenv
 from django.utils import timezone
-from main.models import FUBMessageUser, FubMessageHistory
+from main.models import FUBMessageUser, FubMessageHistory, OpenAIPrompt
 from langchain.memory import ConversationBufferMemory, ChatMessageHistory
 from crm.fub_api_handler import FUBApiHandler
 from .sms_base_assistant import SMSAIBaseAssistant
 import os
+
+
+logger = logging.getLogger(__name__)
+
 
 class SMSConversationManager:
     def __init__(self, temperature, model_name):
@@ -29,8 +34,11 @@ class SMSConversationManager:
                     firstName = response["firstName"]
                 if response["lastName"] != "":
                     lastName = response["lastName"]
+                email = response.get('emails', [{}])[0].get('value', 'No email found')
+
+                logger.info(response)
                 msg_user = FUBMessageUser(phone_number=phone_number, firstname=firstName,
-                                          fubId=fubId, lastname=lastName, message_count=1)
+                                          fubId=fubId, lastname=lastName, email=email, message_count=1)
                 msg_user.save()
                 self.fub_handler.add_update_fub_contact(fubId, phone_number, query)
             else:
@@ -108,14 +116,14 @@ class SMSConversationManager:
     def respond_to_input(self, user_phone, system_phone, user_input):
         msg_user = self.get_or_add_message_user(user_phone, user_input)
         chat_history = self.process_chat_history(user_phone)
-
+        self.assistant.setup_agent(chat_history, msg_user)
         if msg_user.message_count == 1:
             prompt = self.assistant.get_ai_instructions()
             self.add_message_to_history(msg_user, prompt,'System')
         else:
             self.fub_handler.log_fub_text_message(False,msg_user.fubId,system_phone,
                                                   msg_user.phone_number, user_input)
-        self.assistant.setup_agent(chat_history)
+
         response = self.assistant.respond_to_input(user_input)
 
         self.fub_handler.log_fub_text_message(True, msg_user.fubId,msg_user.phone_number, system_phone,

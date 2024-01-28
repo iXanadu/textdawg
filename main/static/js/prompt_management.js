@@ -2,6 +2,7 @@ jQuery(document).ready(function($) {
 
 	var currentSortColumn = 'key'
 	var currentSortDirection = 'asc'; // 'asc' or 'desc'
+    var originalVersion = 0; // To store the original version of the prompt being edited
 
     $('#sortKey').click(function() {
         sortTable('key');
@@ -35,20 +36,26 @@ jQuery(document).ready(function($) {
         $.ajax({
             url: '/main/prompts/list',
             method: 'GET',
+            dataType: 'json',
             data: {
                 sort_column: currentSortColumn,
                 sort_direction: currentSortDirection
             },
-            dataType: 'json',
-            success: function(data) {
+            success: function(response) {
                 var promptsTable = $('#promptsTable tbody');
                 promptsTable.empty();
 
-                data.forEach(function(prompt) {
-                    var row = $('<tr class="editable-prompt" data-id="' + prompt.id + '" data-key="' + prompt.key + '" data-prompt_text="' + prompt.prompt_text + '" data-description="' + prompt.description + '" data-category="' + prompt.category + '" data-isactive="' + prompt.isActive + '" data-version="' + prompt.version + '">');
-		    row.append($('<td>').html('<input type="checkbox" class="prompt-select-checkbox" value="' + prompt.id + '">'));
-                    row.append($('<td>').text(prompt.key));
-                    row.append($('<td>').text(prompt.prompt_text));
+                var data = JSON.parse(response); // Parse the serialized data
+
+                data.forEach(function(item) {
+                    var prompt = item.fields; // Access the fields of the prompt
+                    var truncatedPromptText = prompt.prompt_text.length > 50 ? prompt.prompt_text.substring(0, 47) + '...' : prompt.prompt_text;
+                    var isActiveIndicator = prompt.isActive ? "<strong>*" + prompt.key + "</strong>" : prompt.key; // Making the key bold and adding * if active
+
+                    var row = $('<tr class="editable-prompt" data-id="' + item.pk + '" data-key="' + prompt.key + '" data-full_prompt_text="' + prompt.prompt_text + '" data-truncated_text="' + truncatedPromptText + '" data-description="' + prompt.description + '" data-category="' + prompt.category + '" data-isactive="' + prompt.isActive + '" data-version="' + prompt.version + '">');
+                    row.append($('<td>').html('<input type="checkbox" class="prompt-select-checkbox" value="' + item.pk + '">'));
+                    row.append($('<td>').html(isActiveIndicator)); // Changed .text() to .html() to render HTML
+                    row.append($('<td>').text(truncatedPromptText)); // Display truncated text
                     promptsTable.append(row);
                 });
             },
@@ -62,53 +69,67 @@ jQuery(document).ready(function($) {
     loadPrompts();
 
 	$('#addPromptBtn').click(function() {
+        var isActive = $('#newPromptIsActive').is(':checked');
+        console.log("Checkbox isActive state: ", isActive); // This will log true or false based on the checkbox state
+
 	    $('#addPromptModalLabel').text('Add New Prompt');
 	    $('#modalSubmitButton').text('Add').data('mode', 'add').removeData('promptId');  // Ensure 'promptId' data is cleared
 	    $('#addPromptForm').trigger('reset');
 	    $('#addPromptModal').modal('show');
 	});
 
+    // Prevent checkbox click from triggering row click
+    $(document).on('click', '.prompt-select-checkbox', function(event) {
+        event.stopPropagation();
+    });
+
     // Event listener for opening the modal in 'Edit' mode
     $(document).on('click', '.editable-prompt', function() {
         var promptData = $(this).data();
-	$('#addPromptModalLabel').text('Edit Prompt');
-	$('#modalSubmitButton').text('Save').data('mode', 'edit').data('promptId', promptData.id);
+        var id = $(this).data('id');
+        fetchFullText(id); // Fetch full text and store original version
+        $('#addPromptModalLabel').text('Edit Prompt');
+        $('#modalSubmitButton').text('Save').data('mode', 'edit').data('promptId', promptData.id);
         $('#newPromptKey').val(promptData.key);
-        $('#newPromptText').val(promptData.prompt_text);
         $('#newPromptDescription').val(promptData.description);
         $('#newPromptCategory').val(promptData.category);
         $('#newPromptIsActive').prop('checked', promptData.isactive);
         $('#newPromptVersion').val(promptData.version);
+        originalVersion = promptData.version; // Store the original version
         $('#addPromptModal').modal('show');
     });
-    // Prevent checkbox click from triggering row click
-    $(document).on('click', '.prompt-select-checkbox', function(event) {
-	    event.stopPropagation();
-    });
 
-		// Event handler for the 'Select All' checkbox
-		$('#selectAllPrompts').click(function() {
-			var isChecked = $(this).is(':checked');
-			$('.prompt-select-checkbox').prop('checked', isChecked);
-		});
+    // Function to fetch full prompt text
+    function fetchFullText(id) {
+        $.ajax({
+            url: '/main/prompts/get_full_prompt/' + id,
+            method: 'GET',
+            success: function(response) {
+                $('#newPromptText').val(response.prompt_text);
+            },
+            error: function() {
+                console.error("Error fetching full text");
+            }
+        });
+    }
 
-
-
-    // Handle Form Submission for Add and Edit
+    // Handle Form Submission for Add, Edit, and New Version
     $('#addPromptForm').submit(function(event) {
         event.preventDefault();
-	var mode = $('#modalSubmitButton').data('mode');
-	var promptId = mode === 'edit' ? $('#modalSubmitButton').data('promptId') : '';
-	var url = mode === 'add' ? '/main/prompts/add/' : '/main/prompts/edit/' + promptId + '/';
+        var mode = $('#modalSubmitButton').data('mode');
+        var promptId = mode === 'edit' ? $('#modalSubmitButton').data('promptId') : '';
+        var currentVersion = parseInt($('#newPromptVersion').val());
+
+        var url = (mode === 'add' || currentVersion !== originalVersion) ? '/main/prompts/add/' : '/main/prompts/edit/' + promptId + '/';
 
         const promptData = {
             key: $('#newPromptKey').val(),
             prompt_text: $('#newPromptText').val(),
             description: $('#newPromptDescription').val(),
             category: $('#newPromptCategory').val(),
-            isactive: $('#newPromptIsActive').is(':checked'),
-            version: $('#newPromptVersion').val()
+            is_active: $('#newPromptIsActive').is(':checked'),
         };
+        console.log("promptData: ", promptData);
 
         $.ajax({
             url: url,
@@ -128,6 +149,7 @@ jQuery(document).ready(function($) {
             }
         });
     });
+
 	// Event handler for the delete button
 	$('#deletePromptsBtn').click(function() {
 		var selectedPrompts = $('.prompt-select-checkbox:checked').map(function() {
@@ -174,11 +196,6 @@ jQuery(document).ready(function($) {
 	    }
 	    loadPrompts();
 	}
-
-
-
-
-
 });
 
 

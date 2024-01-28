@@ -6,6 +6,7 @@ urlpatterns = [
     # Modify your existing urlpatterns in the urls.py file
 
     path('prompts/list', views.prompt_list, name='prompt_list'),
+    path('prompts/get_full_prompt/<int:id>', views.prompt_get_full_prompt, name='prompt_get_full_prompt'),
     path('prompts/add/', views.prompt_add, name='prompt_add'),
     path('prompts/edit/<int:id>/', views.prompt_edit, name='prompt_edit'),
     path('prompts/delete/', views.prompt_delete, name='prompt_delete'),

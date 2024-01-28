@@ -1,5 +1,6 @@
 import logging
 import re
+from django.core import serializers
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
@@ -32,13 +33,14 @@ def prompt_list(request):
 
             prompts = OpenAIPrompt.objects.all().order_by(sort_column)
 
-            # Convert queryset to a list of dictionaries
-            prompts_list = list(prompts.values('id', 'key', 'prompt_text', 'description', 'category', 'isActive', 'version'))
-            return JsonResponse(prompts_list, safe=False)
+            # Serialize the queryset
+            data = serializers.serialize('json', prompts)
+            return JsonResponse(data, safe=False, content_type='application/json')
 
     except Exception as e:
         logger.error(f"Error in prompt_list: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
+
 
 def prompt_add(request):
     try:
@@ -52,14 +54,14 @@ def prompt_add(request):
             version = int(data.get('version', 1))  # Default to 1 if not provided
 
             # Convert 'isActive' to boolean
-            is_active = data.get('isactive', 'off') == 'on'
+            isactive = data.get('is_active', False)
 
             prompt = OpenAIPrompt.objects.create(
                 key=data['key'],
                 prompt_text=prompt_text,
                 description = data['description'],
                 category = data['category'],
-                isActive = is_active,
+                isActive = isactive,
                 version = version,
                 variables=variable_list
                 # add other fields as necessary
@@ -77,7 +79,7 @@ def prompt_edit(request, id):
         if request.method == 'POST':
             data = json.loads(request.body)
             prompt = OpenAIPrompt.objects.get(id=id)
-            
+
             # Update prompt fields with new data
             prompt.key = data['key']
             prompt.prompt_text = data['prompt_text']
@@ -90,14 +92,25 @@ def prompt_edit(request, id):
 
             # Convert 'version' to integer and 'isActive' to boolean
             prompt.version = int(data.get('version', 1))
-            prompt.isActive = data.get('isactive', 'off') == 'on'
-            
+            prompt.isActive = data.get('is_active', False)
+
             prompt.save()
             return JsonResponse({'id': prompt.id})
     except ObjectDoesNotExist:
         return JsonResponse({'error': 'Prompt not found'}, status=404)
     except KeyError:
         return HttpResponseBadRequest(json.dumps({'error': 'Missing required fields'}))
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+def prompt_get_full_prompt(request, id):
+    try:
+        if request.method == 'GET':
+            prompt = OpenAIPrompt.objects.get(id=id)
+            return JsonResponse({'prompt_text': prompt.prompt_text})
+    except ObjectDoesNotExist:
+        return JsonResponse({'error': 'Prompt not found'}, status=404)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
