@@ -10,6 +10,7 @@ urlpatterns = [
     path('main/', include('main.urls')),
     path('webhook/', include('webhook.urls')),
     path('webhook_lab/', include('webhook_lab.urls')),  # Include webhook_lab URLs
+    path('', views.dashboard,name='dashboard'),
     path('dashboard/', views.dashboard, name='dashboard'),
     path('prompts/', views.prompt_management, name='prompt_management'),
     path('login/', LoginView.as_view(template_name='main/login.html'), name='login'),

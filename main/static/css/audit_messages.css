@@ -1,0 +1,32 @@
+/* Basic styling for the audit messages table */
+#auditTable {
+    width: 100%;
+    margin-top: 20px;
+}
+
+/* Header styling */
+#auditTable th {
+    cursor: pointer; /* Indicate that headers are clickable for sorting */
+}
+
+/* Styling for the modal containing message details */
+#messageDetailModal .modal-dialog {
+    max-width: 80%;
+}
+
+#messageDetailModal .modal-content {
+    background-color: #f8f9fa;
+}
+
+#messageDetailModal .modal-body {
+    height: 300px; /* Adjust as necessary */
+    overflow-y: auto; /* Enable scrolling for long content */
+}
+
+/* Styling for the 'Mark as Resolved' button */
+#resolveButton {
+    background-color: #4caf50; /* Green color */
+    color: white;
+}
+
+/* Additional custom styles as needed */

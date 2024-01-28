@@ -1,0 +1,45 @@
+{% extends "main/base.html" %}
+{% load static %}
+
+{% block title %}SMS Audit Messages{% endblock %}
+
+{% block content %}
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+<div class="container mt-4">
+    <h2>SMS Audit Messages</h2>
+    <table id="auditTable" class="table table-striped">
+        <thead>
+            <tr>
+                <th><input type="checkbox" id="selectAll"></th>
+                <th onclick="sortTable('created_at')">Created</th>
+                <th onclick="sortTable('comment')">Comment</th>
+                <th onclick="sortTable('message')">Server Message</th>
+                <th onclick="sortTable('resolved')">Resolved</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Rows will be dynamically loaded here -->
+        </tbody>
+    </table>
+</div>
+
+<!-- Modal for Detailed Message View -->
+<div class="modal fade" id="messageDetailModal" tabindex="-1" aria-labelledby="messageDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="messageDetailModalLabel">Message Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Detailed conversation will be displayed here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" id="resolveButton">Mark as Resolved</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'js/audit_messages.js' %}"></script>
+{% endblock %}

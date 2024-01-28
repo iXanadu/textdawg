@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST, require_GET
-from main.models import ChatTopic, ChatMessage
+from main.models import ChatTopic, ChatMessage,SMSMarkedMessage
 from messenger.gpt_conversation_manager import GPTConversationManager
 from messenger.sms_conversation_manager import SMSConversationManager
 from messenger.sms_tasks import process_sms_message
@@ -152,6 +152,30 @@ def smsweb_receiver(request):
         c = SMSConversationManager(temperature=0.0, model_name="gpt-4-0125-preview")
         # c = SMSConversationManager(temperature=0.0, model_name="gpt-4-1106-preview")
         response = c.respond_to_input(from_phone, to_phone, user_input)
-        return HttpResponse(response['output'], status=200)
+        userId = c.assistant.msg_user.id
+        serverMsgId = c.server_msgId
+        userMsgId = c.user_msgId
+        # Construct the JSON response
+        data = {
+            'output': response['output'],
+            'userId': userId,
+            'serverMsgId': serverMsgId,
+            'previousMsgId': userMsgId
+        }
+
+        return JsonResponse(data)
     else:
         return HttpResponse('Method not allowed', status=405)
+
+@csrf_exempt  # Disable CSRF protection for this view
+def mark_sms_message(request):
+    if request.method == 'POST':
+        data = request.POST
+        logger.info(data)
+        sms_marked_message = SMSMarkedMessage.objects.create(
+            message_id=data['message_id'],
+            preceding_message_id=data['previousmsgid'],
+            comment=data['comment']
+        )
+        return JsonResponse({'status': 'success', 'sms_marked_message_id': sms_marked_message.id})
+    return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)

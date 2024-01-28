@@ -118,3 +118,12 @@ class OpenAIPrompt(models.Model):
     def __str__(self):
         return f"{self.key} (Version {self.version})"
 
+class SMSMarkedMessage(models.Model):
+    message_id = models.IntegerField()  # ID of the marked server response
+    preceding_message_id = models.IntegerField()  # ID of the preceding human message
+    comment = models.TextField()  # User's comment on the server response
+    created_at = models.DateTimeField(auto_now_add=True)  # Timestamp of marking the message
+    resolved = models.BooleanField(default=False)  # Defaulting to False indicating unresolved
+
+    def __str__(self):
+        return f"SMS Marked Message {self.message_id}"

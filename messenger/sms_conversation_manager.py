@@ -19,6 +19,8 @@ class SMSConversationManager:
         self.fub_handler = FUBApiHandler(os.getenv('FUB_API_URL'), os.getenv('FUB_API_KEY'),
                                          os.getenv('FUB_X_SYSTEM'), os.getenv('FUB_X_SYSTEM_KEY'))
         self.assistant = SMSAIBaseAssistant(self.model_temp,self.model_name)
+        self.server_msgId = 0
+        self.user_msgId = 0
 
     def get_or_add_message_user(self, phone_number, query=''):
         msg_user = FUBMessageUser.objects.filter(phone_number=phone_number).first()
@@ -60,6 +62,7 @@ class SMSConversationManager:
             message_user=message_user
         )
         new_message.save()
+        return new_message.id
 
     def increment_user_message_count(self, message_user):
         message_user.message_count += 1
@@ -128,9 +131,10 @@ class SMSConversationManager:
 
         self.fub_handler.log_fub_text_message(True, msg_user.fubId,msg_user.phone_number, system_phone,
                       response['output'])
-        self.add_message_to_history(msg_user, user_input, 'Human')
+        self.user_msgId = self.add_message_to_history(msg_user, user_input, 'Human')
         self.increment_user_message_count(msg_user)
-        self.add_message_to_history(msg_user, response['output'], 'AI')
+        self.server_msgId = self.add_message_to_history(msg_user, response['output'], 'AI')
+        logger.info(f"Server Msgid = {self.server_msgId}")
         return response
 
 

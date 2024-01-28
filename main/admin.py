@@ -3,7 +3,7 @@ from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserChangeForm
 from django import forms
-from .models import FUBMessageUser, FubMessageHistory,TextCode,ChatMessage,ChatTopic,UserProfile,OpenAIPrompt
+from .models import FUBMessageUser, FubMessageHistory,TextCode,ChatMessage,ChatTopic,UserProfile,OpenAIPrompt,SMSMarkedMessage
 from .forms import FUBMessageUserAdminForm
 
 # Register your models here.
@@ -14,6 +14,8 @@ admin.site.register(ChatMessage)
 admin.site.register(ChatTopic)
 admin.site.register(UserProfile)
 admin.site.register(OpenAIPrompt)
+admin.site.register(SMSMarkedMessage)
+
 
 class FUBMessageUserAdmin(admin.ModelAdmin):
     form = FUBMessageUserAdminForm

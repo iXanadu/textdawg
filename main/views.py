@@ -7,11 +7,15 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST, require_GET
 from django.http import JsonResponse, HttpResponseBadRequest
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
-from .models import OpenAIPrompt
+from .models import OpenAIPrompt, SMSMarkedMessage,FubMessageHistory
+from django.core.serializers import serialize
 import json
 
 logger = logging.getLogger(__name__)
 
+@login_required(login_url='/login/')
+def index(request):
+    return render(request, 'main/index.html')
 @login_required(login_url='/login/')
 def dashboard(request):
     return render(request, 'main/dashboard.html')
@@ -132,3 +136,74 @@ def prompt_delete(request):
     except Exception as e:
         logger.error(f"Error in prompt_delete: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
+
+@login_required(login_url='/login/')
+def audit_messages(request):
+    return render(request, 'main/audit_messages.html')
+
+
+def audit_get_messages(request):
+    if request.method == 'GET':
+        marked_messages = SMSMarkedMessage.objects.all().order_by('-created_at')
+        marked_messages_data = []
+
+        for marked_message in marked_messages:
+            server_message = FubMessageHistory.objects.get(id=marked_message.message_id).message
+            marked_messages_data.append({
+                'pk': marked_message.id,
+                'created_at': marked_message.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+                'comment': marked_message.comment,
+                'server_message': server_message,
+                'resolved': marked_message.resolved
+            })
+
+        # Convert the list of dictionaries to JSON string
+        data = json.dumps(marked_messages_data)
+
+        return JsonResponse(data, safe=False)
+    else:
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+
+def audit_get_message(request, message_id):
+    if request.method == 'GET':
+        try:
+            message = SMSMarkedMessage.objects.get(id=message_id)
+            conversation_data = get_audit_conversation(message)
+            return JsonResponse(conversation_data)
+        except SMSMarkedMessage.DoesNotExist:
+            return JsonResponse({'error': 'Message not found'}, status=404)
+    else:
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+def get_audit_conversation(message):
+    marked_message = message
+    server_message = FubMessageHistory.objects.get(id=marked_message.message_id).message
+    preceding_user_message = FubMessageHistory.objects.get(id=marked_message.preceding_message_id).message
+
+    conversation_data = {
+        'server_message': server_message,
+        'preceding_user_message': preceding_user_message
+    }
+    return (conversation_data)
+
+@csrf_exempt
+def audit_resolve_message(request):
+    if request.method == 'POST':
+        try:
+            message_id = request.POST.get('message_id')
+            resolved_status = request.POST.get('resolved_status') == 'true'  # Convert to boolean
+
+            message = SMSMarkedMessage.objects.get(id=message_id)
+            message.resolved = resolved_status
+            message.save()
+
+            return JsonResponse({'status': 'success'})
+        except SMSMarkedMessage.DoesNotExist:
+            return JsonResponse({'error': 'Message not found'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    else:
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+
