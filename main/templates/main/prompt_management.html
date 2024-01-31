@@ -12,12 +12,15 @@
 <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
 <div class="container"> 
     <h2>Prompt Management</h2>
+    {% if perms.main.add_openaiprompt %}
     <button id="addPromptBtn" class="btn btn-primary my-2">Add Prompt</button>
+    {% endif %}
     <table id="promptsTable" class="table table-striped">
         <thead>         
             <tr>    
                 <th><input type="checkbox" id="selectAllPrompts"></th>
                 <th id="sortKey">Key</th>
+                <th id="Version">Version</th>
                 <th id="sortPromptText">Prompt Text</th>
                 <!-- Add other columns as needed -->
             </tr>   
@@ -25,9 +28,10 @@
         <tbody>         
             <!-- Content will be loaded via jQuery -->
         </tbody>    
-    </table>            
+    </table>
+    {% if perms.main.delete_openaiprompt %}
     <button id="deletePromptsBtn" class="btn btn-danger">Delete Selected</button>
-
+    {% endif %}
     <!-- Add Prompt Modal -->
     <div class="modal fade" id="addPromptModal" tabindex="-1" aria-labelledby="addPromptModalLabel" aria-hidden="true">
         <div class="modal-dialog custom-modal-size"> <!-- Increased modal size -->
@@ -67,7 +71,9 @@
                             <label for="newPromptVariables" class="form-label">Variables</label>
                             <textarea class="form-control" id="newPromptVariables"></textarea>
                         </div>
+                        {% if perms.main.add_openaiprompt %}
                         <button type="submit" id="modalSubmitButton" class="btn btn-primary">Add Prompt</button>
+                        {% endif %}
                     </form>
                 </div>
             </div>

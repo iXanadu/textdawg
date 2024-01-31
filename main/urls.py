@@ -5,6 +5,7 @@ urlpatterns = [
     # ... your other url patterns ...
     # Modify your existing urlpatterns in the urls.py file
 
+    path('get_perms/', views.get_model_permissions, name='get_model_permissions'),
     path('prompts/list', views.prompt_list, name='prompt_list'),
     path('prompts/get_full_prompt/<int:id>', views.prompt_get_full_prompt, name='prompt_get_full_prompt'),
     path('prompts/add/', views.prompt_add, name='prompt_add'),
@@ -14,5 +15,6 @@ urlpatterns = [
     path('audit/get_messages/', views.audit_get_messages, name='/audit_get_messages/'),
     path('audit/message/<int:message_id>/', views.audit_get_message, name='/audit_get_message/'),
     path('audit/resolve_message/', views.audit_resolve_message, name='/audit_resolve_message/'),
+    path('audit/delete_messages/', views.audit_delete_messages, name='/audit_delete_messages/'),
 ]
 

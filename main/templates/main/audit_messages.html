@@ -10,7 +10,7 @@
     <table id="auditTable" class="table table-striped">
         <thead>
             <tr>
-                <th><input type="checkbox" id="selectAll"></th>
+                <th><input type="checkbox" id="selectAllMessages"></th>
                 <th onclick="sortTable('created_at')">Created</th>
                 <th onclick="sortTable('comment')">Comment</th>
                 <th onclick="sortTable('message')">Server Message</th>
@@ -21,6 +21,10 @@
             <!-- Rows will be dynamically loaded here -->
         </tbody>
     </table>
+    {% if perms.main.delete_smsmarkedmessage %}
+    <button id="deleteAuditMsgBtn" class="btn btn-danger">Delete Selected</button>
+    {% endif %}
+
 </div>
 
 <!-- Modal for Detailed Message View -->

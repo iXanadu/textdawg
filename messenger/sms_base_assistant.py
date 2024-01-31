@@ -6,12 +6,11 @@ from langchain_community.tools import DuckDuckGoSearchRun, Tool
 from langchain.agents import initialize_agent, AgentType
 from langchain_community.utilities import GoogleSearchAPIWrapper
 from crm.fub_api_handler import FUBApiHandler
-from langchain.chains import LLMChain
-from langchain.prompts import PromptTemplate
 from langchain.globals import set_verbose, set_debug
 import os
 import json
 from main.models import TextCode, OpenAIPrompt
+from googleAPI.googleAPI import GoogleAPI
 
 # import pyowm
 # from pyowm.owm import OWM
@@ -30,8 +29,9 @@ class SMSAIBaseAssistant:
         self.model_temp = temperature
         self.fub_handler = FUBApiHandler(os.getenv('FUB_API_URL'), os.getenv('FUB_API_KEY'),
                                          os.getenv('FUB_X_SYSTEM'), os.getenv('FUB_X_SYSTEM_KEY'))
-        google_cse_id = os.getenv("GOOGLE_EVH_CSE_ID")
-        self.property_search = GoogleSearchAPIWrapper(google_cse_id=google_cse_id)
+        self.google_cse_id = os.getenv("GOOGLE_EVH_CSE_ID")
+        self.google_api = GoogleAPI()
+        self.property_search = GoogleSearchAPIWrapper(google_cse_id=self.google_cse_id)
         self.general_search = DuckDuckGoSearchRun()
         # self.weather = OpenWeatherMapAPIWrapper()
         self.llm = ChatOpenAI(temperature=self.model_temp, model=self.model_name)
@@ -78,7 +78,20 @@ class SMSAIBaseAssistant:
 
         return(f"User email updated to {email}")
 
+    def post_alert_to_textdawg_ws(self,msg):
+        logger.info(f"post_alert_to_textdawg_ws->msg=({msg}")
+        if self.msg_user:
+            fubId=self.msg_user.fubId
+            fuburl=f'https://trustworthyagents.followupboss.com/2/people/view/{fubId}'
+            msg = f"{msg}\n{fuburl}"
+            logger.info(f"post_alert_to_textdawg_ws->updated_msg=({msg})")
 
+        if hasattr(self.google_api, 'is_initialized') and self.google_api.is_initialized:
+            self.google_api.post_message_to_agent_workspace(msg)
+        else:
+            logger.error("Error: google_api is not an instance of GoogleAPI or not properly initialized")
+
+        return(f"Notice posted to textDawg Workspace")
 
     def property_results(self, query):
         return self.property_search.results(query, 8)
@@ -140,6 +153,12 @@ class SMSAIBaseAssistant:
             return response
 
     def initialize_conversational_agent(self):
+
+        post_alert_to_textdawg_ws = Tool(
+            name="post_alert_to_textdawg_ws",
+            description="Useful to alert agents that a person wants a call or contact",
+            func=self.post_alert_to_textdawg_ws
+        )
         process_and_update_user_name = Tool(
             name="process_and_update_user_name",
             description="Useful when you get a new or different name from the person you are chatting with",
@@ -178,7 +197,9 @@ class SMSAIBaseAssistant:
         response_schemas = [answer_schema]
         output_parser = StructuredOutputParser.from_response_schemas(response_schemas)
 
-        tools = [property_search, text_tool, general_search,process_and_update_user_name,process_and_update_user_email]
+        tools = [property_search, text_tool, general_search,
+                 process_and_update_user_name,process_and_update_user_email,
+                 post_alert_to_textdawg_ws]
         # tools = [property_search, text_tool, general_search, weather_tool]
         # tools = [text_tool, general_search]
 
