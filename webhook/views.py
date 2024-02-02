@@ -201,6 +201,7 @@ def fubhook_handler(request, event_type):
         signature_from_header = request.META.get('HTTP_FUB_SIGNATURE')
         system_key = os.getenv('FUB_X_SYSTEM_KEY')  # Replace with your actual X-System-Key
 
+        logger.info(f"fubHandler called for {event_type}.  FUB_SIG = {signature_from_header} XSysKey = {system_key}")
         if not data or not signature_from_header:
             logger.error('Webhook data or signature missing')
             return JsonResponse({'error': 'Webhook data or signature missing'}, status=400)
