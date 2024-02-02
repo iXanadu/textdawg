@@ -193,15 +193,13 @@ def is_from_fub(context, signature, system_key):
 
     return signature == calculated_base64
 
-
-
 # The handler function is temporary to capture some calls
 @csrf_exempt
 def fubhook_handler(request, event_type):
     if request.method == 'POST':
         data = request.POST.get('json_data')
         signature_from_header = request.META.get('HTTP_FUB_SIGNATURE')
-        system_key = 'YOUR_X-SYSTEM-KEY'  # Replace with your actual X-System-Key
+        system_key = os.getenv('FUB_X_SYSTEM_KEY')  # Replace with your actual X-System-Key
 
         if not data or not signature_from_header:
             logger.error('Webhook data or signature missing')

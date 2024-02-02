@@ -52,7 +52,7 @@ class FUBApiHandler:
         :return: JSON response from the API or None in case of failure.
         """
         url = self._generate_url(path)
-        logger.info(f"fub_handler->make_request: {data}")
+        logger.info(f"fub_handler->make_request url=({url}) data=({data})")
         try:
             response = self.session.request(method, url, params=query_params, json=data)
             response.raise_for_status()
@@ -203,6 +203,24 @@ class FUBApiHandler:
         path = f'/v1/webhooks'
         return (self._make_request('GET', path))
 
+    def add_webhook(self,event,url):
+        path = '/v1/webhooks'
+        method = "POST"
+        data = {
+            'event': event,
+            'url': url
+        }
+        return(self._make_request(method, path, data=data))
+
+    def delete_webhook(self, id):
+        path = f'/v1/webhooks/{id}'
+        method = 'DELETE'
+        logger.info(f"delete_webhook path: ({path})")
+        return (self._make_request(method, path))
+    def get_webhook(self, id):
+        path = f"/v1/webhooks/{id}"
+        method = 'GET'
+        return (self._make_request(method, path))
     def old_get_text_messages(self, id):
         path = f'/v1/textMessages?personId={id}'
         return (self._make_request('GET', path))

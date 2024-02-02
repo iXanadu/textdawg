@@ -6,38 +6,19 @@ jQuery(document).ready(function ($) {
         // Clear form fields for a new entry
         $('#webhookURL').val('');
         $('#webhookEvent').prop('readonly', false).val(''); // Enable and clear the event field for adding
-
         $('#editWebhookModal').modal('show');
         $('#editWebhookForm').attr('data-webhookId', ''); // Clear ID to indicate a new entry
     });
-
-
     $('#editWebhookForm').submit(function(e) {
-        e.preventDefault();
+        e.preventDefault(); // Prevent the default form submission
         const url = $('#webhookURL').val();
-        const event = $('#webhookEvent').val(); // Ensure you're capturing the event value
-        const webhookId = $(this).data('webhook-id');
-
-        if (webhookId) {
-            updateWebhook(webhookId, url);
-        } else {
-            createWebhook(url, event); // Pass both URL and event here
-        }
-    });
-
-
-    $('body').on('click', '.edit-webhook', function () {
-        const id = $(this).data('id');
-        openEditModal(id);
+        const event = $('#webhookEvent').val(); // Capture the event value
+        createWebhook(url, event); // Call createWebhook with URL and event
     });
 
     $('body').on('click', '.delete-webhook', function () {
         const id = $(this).data('id');
         deleteWebhook(id);
-    });
-
-    $('#selectAll').click(function () {
-        $('.webhook-select').prop('checked', this.checked);
     });
 
     $('#deleteSelected').click(function () {
@@ -63,7 +44,6 @@ function fetchWebhooks() {
                         <td><button class="btn btn-sm ${webhook.status === 'Active' ? 'btn-success' : 'btn-secondary'} toggle-status" data-id="${webhook.id}">${webhook.status}</button></td>
                         <td>${webhook.url.substr(-30)}</td>
                         <td>
-                            <button class="btn btn-info btn-sm edit-webhook" data-id="${webhook.id}">Edit</button>
                             <button class="btn btn-danger btn-sm delete-webhook" data-id="${webhook.id}">Delete</button>
                         </td>
                     </tr>
@@ -76,64 +56,57 @@ function fetchWebhooks() {
     });
 }
 
-function toggleWebhookStatus(webhookId) {
+$('#webhookList').on('click', '.toggle-status', function() {
+    const id = $(this).data('id');
+    const status = $(this).data('status'); // Assuming 'status' is stored as a data attribute
+    toggleWebhookStatus(id, status); // Pass both ID and status to the function
+});
+
+
+function toggleWebhookStatus(id, currentStatus) {
     $.ajax({
-        url: `/main/fub_webhooks/fub_webhook_toggle/${webhookId}`,
+        url: '/main/fub_webhooks/fub_webhook_toggle',
         method: 'POST',
-        beforeSend: function (xhr) {
-                xhr.setRequestHeader("X-CSRFToken", csrftoken);
-            },
-        success: function () {
-            fetchWebhooks();
+        contentType: 'application/json',
+        data: JSON.stringify({
+            id: id,
+            status: currentStatus
+        }),
+        beforeSend: function(xhr) {
+            xhr.setRequestHeader("X-CSRFToken", csrftoken); // Ensure csrftoken is correctly defined
         },
-
-        error: function (xhr, status, error) {
-            console.error("Error toggling status: ", error);
-        }
-    });
-}
-
-function openEditModal(id) {
-    $.ajax({
-        url: `/main/fub_webhooks/fub_webhook_get/${id}`,
-        method: 'GET',
-        beforeSend: function (xhr) {
-                xhr.setRequestHeader("X-CSRFToken", csrftoken);
-            },
-        success: function(data) {
-            $('#webhookURL').val(data.url);
-            $('#webhookEvent').prop('readonly', true).val(data.event); // Set readonly and populate for edit
-            $('#editWebhookForm').attr('data-webhookId', webhookId);
-            $('#editWebhookModal').modal('show');
+        success: function() {
+            fetchWebhooks(); // Reload webhook list to reflect changes
         },
         error: function(xhr, status, error) {
-            console.error("Error opening edit modal: ", error);
+            console.error("Error toggling webhook status: ", error);
         }
     });
 }
 
 
-function updateWebhook(webhookId, url) {
-    $.ajax({
-        url: `/main/fub_webhooks/fub_webhook_change/${webhookId}`,
-        method: 'POST',
-        data: {url: url},
-        beforeSend: function (xhr) {
-                xhr.setRequestHeader("X-CSRFToken", csrftoken);
-            },
-        success: function () {
-            $('#editWebhookModal').modal('hide');
-            fetchWebhooks();
-        },
-        error: function (xhr, status, error) {
-            console.error("Error updating webhook: ", error);
-        }
-    });
-}
+// function openEditModal(id) {
+//     $.ajax({
+//         url: `/main/fub_webhooks/fub_webhook_get/${id}`,
+//         method: 'GET',
+//         beforeSend: function (xhr) {
+//                 xhr.setRequestHeader("X-CSRFToken", csrftoken);
+//             },
+//         success: function(data) {
+//             $('#webhookURL').val(data.url);
+//             $('#webhookEvent').prop('readonly', true).val(data.event); // Set readonly and populate for edit
+//             $('#editWebhookForm').attr('data-webhookId', webhookId);
+//             $('#editWebhookModal').modal('show');
+//         },
+//         error: function(xhr, status, error) {
+//             console.error("Error opening edit modal: ", error);
+//         }
+//     });
+// }
 
 function createWebhook(url,event) {
     $.ajax({
-        url: '/main/fub_webhooks/fub_webhook_register',
+        url: '/main/fub_webhooks/fub_webhook_add',
         method: 'POST',
         data: {
             url: url,
