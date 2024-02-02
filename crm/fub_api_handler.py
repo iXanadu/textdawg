@@ -2,30 +2,38 @@ import requests
 import logging
 from urllib.parse import urlencode, urljoin
 import csv
-
+from base64 import b64encode
 logger = logging.getLogger(__name__)
 
 class FUBApiHandler:
-    def __init__(self, api_url, api_key,x_system, x_system_key):
+    def __init__(self, api_url, api_key, x_system, x_system_key):
         """
         Initialize the API handler with API URL and key.
         :param api_url: Base URL of the API.
         :param api_key: API key for authorization.
-        ;param x_system: FUB's System Name
-        ;param x_system_key: FUB's System Key
+        :param x_system: FUB's System Name
+        :param x_system_key: FUB's System Key
         """
-        logging.info(f"{api_url,api_key}")
+
+        if not api_url.startswith("https://"):
+            raise ValueError("API URL must start with https:// for secure communication.")
+
         self.base_url = api_url.rstrip('/') + '/'  # Ensure trailing slash
         self.api_key = api_key
         self.x_system = x_system
         self.x_system_key = x_system_key
+
+        # Encoding API key for Basic Authentication
+        encoded_key = b64encode(f"{self.api_key}:".encode()).decode()
+
         self.session = requests.Session()
         self.session.headers.update({
-            'Authorization': f'Basic {self.api_key}',
+            'Authorization': f'Basic {encoded_key}',
             'X-System': self.x_system,
             'X-System-Key': x_system_key,
             'Accept': 'application/json'
         })
+
     def _generate_url(self, path):
         """
         Generate the full URL for an API request.
@@ -44,12 +52,13 @@ class FUBApiHandler:
         :return: JSON response from the API or None in case of failure.
         """
         url = self._generate_url(path)
+        logger.info(f"fub_handler->make_request: {data}")
         try:
             response = self.session.request(method, url, params=query_params, json=data)
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as err:
-            logging.error(f"Request Error ({method} {url}): {err}")
+            logger.error(f"Request Error ({method} {url}): {err}")
             return None
 
     # Example of a refactored method with comments
@@ -189,6 +198,10 @@ class FUBApiHandler:
             return person
 
         return False
+
+    def get_all_webhooks(self):
+        path = f'/v1/webhooks'
+        return (self._make_request('GET', path))
 
     def old_get_text_messages(self, id):
         path = f'/v1/textMessages?personId={id}'

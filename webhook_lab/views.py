@@ -43,8 +43,7 @@ def test_ai_assistant(request):
     f = FUBApiHandler(os.getenv('FUB_API_URL'), os.getenv('FUB_API_KEY'),
                                 os.getenv('FUB_X_SYSTEM'), os.getenv('FUB_X_SYSTEM_KEY'))
     # response = f.get_bulk_text_messages()
-    response = f.get_bulk_text_messages()
-
+    response = f.get_all_webhooks()
     # textmessages = response.get('textmessages', [])
     # csv_file_path = 'textmessages.csv'
     # columns_to_include = ['id', 'created', 'updated', 'personId', 'status', 'message', 'fromNumber', 'toNumber', 'sent']

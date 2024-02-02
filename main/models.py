@@ -127,3 +127,21 @@ class SMSMarkedMessage(models.Model):
 
     def __str__(self):
         return f"SMS Marked Message {self.message_id}"
+
+class FUBhookEvent(models.Model):
+    event_type = models.CharField(max_length=50)
+    data = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.event_type} - {self.created_at}"
+
+
+class FubWebhook(models.Model):
+    webhookId = models.CharField(max_length=255, unique=True, null=True, blank=True)
+    status = models.CharField(max_length=50)
+    event = models.CharField(max_length=100)
+    url = models.URLField(max_length=200)
+
+    def __str__(self):
+        return f"Webhook {self.event} - {self.status}"

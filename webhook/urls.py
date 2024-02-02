@@ -1,7 +1,8 @@
-from django.urls import path
+from django.urls import path,re_path
 from . import views
 
 urlpatterns = [
+    re_path(r'^api/fubhook/(?P<event_type>\w+)/$', views.fubhook_handler, name='fubhook_handler'),
     path('sms_receiver/', views.sms_receiver, name='sms_receiver'),
     path('smsweb_receiver/', views.smsweb_receiver, name='smsweb_receiver'),
     path('chat_receiver/', views.chat_receiver, name='chat_receiver'),

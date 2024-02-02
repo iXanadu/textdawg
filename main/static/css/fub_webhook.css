@@ -1,0 +1,52 @@
+/* General Table Styling */
+.table {
+    width: 100%;
+    margin-bottom: 1rem;
+    background-color: transparent;
+}
+
+.table th,
+.table td {
+    padding: 0.75rem;
+    vertical-align: top;
+    border-top: 1px solid #dee2e6;
+}
+
+/* Header Check Box */
+#selectAll {
+    cursor: pointer;
+}
+
+/* Row Highlighting on Hover */
+.table tbody tr:hover {
+    background-color: #f2f2f2;
+}
+
+/* Button Styles */
+.btn-primary {
+    color: #fff;
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
+.btn-primary:hover {
+    color: #fff;
+    background-color: #0056b3;
+    border-color: #004085;
+}
+
+/* Modal Styles */
+.modal-content {
+    background-color: #fefefe;
+    margin: 15% auto; /* 15% from the top and centered */
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%; /* Could be more or less, depending on screen size */
+}
+
+/* Responsive Design Adjustments */
+@media (max-width: 768px) {
+    .modal-content {
+        width: 95%;
+    }
+}

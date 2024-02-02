@@ -13,6 +13,7 @@ urlpatterns = [
     path('', views.dashboard,name='dashboard'),
     path('dashboard/', views.dashboard, name='dashboard'),
     path('prompts/', views.prompt_management, name='prompt_management'),
+    path('fub_webhooks/', views.fub_webhooks, name='fub_webhooks'),
     path('login/', LoginView.as_view(template_name='main/login.html'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(next_page='/login/'), name='logout'),
     path('admin/', admin.site.urls),

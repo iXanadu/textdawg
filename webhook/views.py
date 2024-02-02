@@ -1,16 +1,17 @@
 import logging
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse
-from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.csrf import csrf_exempt, csrf_protect
 from django.views.decorators.http import require_POST, require_GET
-from main.models import ChatTopic, ChatMessage,SMSMarkedMessage
+from main.models import ChatTopic, ChatMessage,SMSMarkedMessage,FUBhookEvent
 from messenger.gpt_conversation_manager import GPTConversationManager
 from messenger.sms_conversation_manager import SMSConversationManager
 from messenger.sms_tasks import process_sms_message
 from twilio.request_validator import RequestValidator
 from twilio.twiml.messaging_response import MessagingResponse
-
-
+import hashlib
+import hmac
+import base64
 import os
 
 
@@ -178,4 +179,53 @@ def mark_sms_message(request):
             comment=data['comment']
         )
         return JsonResponse({'status': 'success', 'sms_marked_message_id': sms_marked_message.id})
-    return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
+    else:
+        return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
+
+def is_from_fub(context, signature, system_key):
+    calculated = hmac.new(
+        key=system_key.encode('utf-8'),
+        msg=context.encode('utf-8'),
+        digestmod=hashlib.sha256
+    ).digest()
+
+    calculated_base64 = base64.b64encode(calculated).decode('utf-8')
+
+    return signature == calculated_base64
+
+
+
+# The handler function is temporary to capture some calls
+@csrf_exempt
+def fubhook_handler(request, event_type):
+    if request.method == 'POST':
+        data = request.POST.get('json_data')
+        signature_from_header = request.META.get('HTTP_FUB_SIGNATURE')
+        system_key = 'YOUR_X-SYSTEM-KEY'  # Replace with your actual X-System-Key
+
+        if not data or not signature_from_header:
+            logger.error('Webhook data or signature missing')
+            return JsonResponse({'error': 'Webhook data or signature missing'}, status=400)
+
+        try:
+            # Verify the request
+            if is_from_fub(data, signature_from_header, system_key):
+                # Proceed with processing the webhook data and storing it in the database
+                FUBhookEvent.objects.create(event_type=event_type, data=data)
+                logger.info('Webhook received and verified successfully')
+                return JsonResponse({'message': 'Webhook received and verified successfully'}, status=200)
+            else:
+                # Respond with an error if the request is not verified
+                logger.error('Invalid request signature')
+                return JsonResponse({'error': 'Invalid request signature'}, status=403)
+        except Exception as e:
+            # Log any unexpected exceptions
+            logger.error(f'Error processing webhook: {str(e)}')
+            return JsonResponse({'error': 'An error occurred while processing the webhook'}, status=500)
+    else:
+        # Respond with an error status code for non-POST requests
+        logger.error('Invalid request method')
+        return JsonResponse({'error': 'Invalid request method'}, status=400)
+
+
+

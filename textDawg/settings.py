@@ -13,7 +13,7 @@ SECRET_KEY = 'django-insecure-aek1*q7zk3)p8)4nn9^o$3s!ilfs4(9%d&t!k(0o!tcyd9$ccv
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["127.0.0.1", "textdawg.com", "45.33.94.207"]
+ALLOWED_HOSTS = ["127.0.0.1", "textdawg.com", "www.textdawg.com", "45.33.94.207"]
 # settings.py
 
 # Celery Settings
