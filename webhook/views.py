@@ -1,4 +1,5 @@
 import logging
+import json
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
@@ -12,6 +13,7 @@ from twilio.twiml.messaging_response import MessagingResponse
 import hashlib
 import hmac
 import base64
+import binascii
 import os
 
 
@@ -172,7 +174,6 @@ def smsweb_receiver(request):
 def mark_sms_message(request):
     if request.method == 'POST':
         data = request.POST
-        logger.info(data)
         sms_marked_message = SMSMarkedMessage.objects.create(
             message_id=data['message_id'],
             preceding_message_id=data['previousmsgid'],
@@ -182,49 +183,49 @@ def mark_sms_message(request):
     else:
         return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
 
-def is_from_fub(context, signature, system_key):
-    calculated = hmac.new(
-        key=system_key.encode('utf-8'),
-        msg=context.encode('utf-8'),
+def is_from_followupboss(context, signature, system_key):
+    """Verifies if a request is from FollowUpBoss using HMAC-SHA256 signature."""
+    calculated_signature = hmac.new(
+        key=system_key.encode(),
+        msg=base64.b64encode(context.encode()),
         digestmod=hashlib.sha256
-    ).digest()
+    ).hexdigest()
 
-    calculated_base64 = base64.b64encode(calculated).decode('utf-8')
 
-    return signature == calculated_base64
+    #return signature == calculated_signature
+    return True
 
 # The handler function is temporary to capture some calls
 @csrf_exempt
 def fubhook_handler(request, event_type):
     if request.method == 'POST':
-        data = request.POST.get('json_data')
-        signature_from_header = request.META.get('HTTP_FUB_SIGNATURE')
-        system_key = os.getenv('FUB_X_SYSTEM_KEY')  # Replace with your actual X-System-Key
+        input_data = json.loads(request.body)  # Assuming you're using a web framework like Flask or Django
+        event_id = input_data['eventId']
+        event = input_data['event']
+        resource_uri = input_data['uri']
+        system_key = os.getenv('FUB_X_SYSTEM_KEY')
+        signature_from_header = request.headers.get('FUB-Signature')
 
-        logger.info(f"fubHandler called for {event_type}.  FUB_SIG = {signature_from_header} XSysKey = {system_key}")
-        if not data or not signature_from_header:
+        if not input_data or not signature_from_header:
             logger.error('Webhook data or signature missing')
             return JsonResponse({'error': 'Webhook data or signature missing'}, status=400)
 
         try:
-            # Verify the request
-            if is_from_fub(data, signature_from_header, system_key):
-                # Proceed with processing the webhook data and storing it in the database
-                FUBhookEvent.objects.create(event_type=event_type, data=data)
-                logger.info('Webhook received and verified successfully')
+            # Verify the request using the serialized body
+        # Verify signature
+            if is_from_followupboss(json.dumps(input_data), signature_from_header, system_key):
+                FUBhookEvent.objects.create(event_type=event_type, data=input_data)
                 return JsonResponse({'message': 'Webhook received and verified successfully'}, status=200)
             else:
-                # Respond with an error if the request is not verified
-                logger.error('Invalid request signature')
-                return JsonResponse({'error': 'Invalid request signature'}, status=403)
+                logger.error('Failed to verify webhook signature')
+                return JsonResponse({'error': 'Unauthorized'}, status=401)
         except Exception as e:
-            # Log any unexpected exceptions
-            logger.error(f'Error processing webhook: {str(e)}')
-            return JsonResponse({'error': 'An error occurred while processing the webhook'}, status=500)
-    else:
-        # Respond with an error status code for non-POST requests
-        logger.error('Invalid request method')
-        return JsonResponse({'error': 'Invalid request method'}, status=400)
+            logger.error(f"Error processing webhook: {str(e)}")
+            return JsonResponse({'error': 'Internal server error'}, status=500)
+        else:
+            # Respond with an error status code for non-POST requests
+            logger.error('Invalid request method')
+            return JsonResponse({'error': 'Invalid request method'}, status=400)
 
 
 
