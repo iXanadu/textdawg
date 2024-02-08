@@ -4,17 +4,16 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
 from django.views.decorators.http import require_POST, require_GET
-from main.models import ChatTopic, ChatMessage,SMSMarkedMessage,FUBhookEvent
+from main.models import ChatTopic, ChatMessage,SMSMarkedMessage,FUBhookEvent,FubMessageHistory
 from messenger.gpt_conversation_manager import GPTConversationManager
 from messenger.sms_conversation_manager import SMSConversationManager
 from messenger.sms_tasks import process_sms_message
 from twilio.request_validator import RequestValidator
 from twilio.twiml.messaging_response import MessagingResponse
-import hashlib
-import hmac
-import base64
-import binascii
 import os
+import hashlib
+import base64
+import hmac
 
 
 logger = logging.getLogger(__name__)
@@ -35,14 +34,24 @@ def list_chat_topics(request):
 @login_required
 @require_GET
 def get_chat_messages(request, topic_id):
-    messages = ChatMessage.objects.all().values('message_text', 'role', 'timestamp', 'topic_id')
-    response = JsonResponse(list(messages), safe=False)
-
-    messages = ChatMessage.objects.filter(topic_id=topic_id).order_by('timestamp').values('message_text', 'role',
-                                                                                          'timestamp')
+    messages = ChatMessage.objects.filter(topic_id=topic_id).order_by('timestamp').values('message_text', 'role','timestamp')
     response = JsonResponse(list(messages), safe=False)
     return response
 
+@login_required
+@require_GET
+def get_sms_messages(request, phone_number):
+    digits = ''.join(filter(str.isdigit, phone_number))
+    if len(digits) == 10:
+        cleaned_phone_number = f"{digits[0:3]}-{digits[3:6]}-{digits[6:10]}"
+    elif len(digits) == 11:
+        cleaned_phone_number = f"{digits[1:4]}-{digits[4:7]}-{digits[7:11]}"
+    else:
+        return HttpResponse(f"from-Phone must be 10 (or 11) digits ({digits})", status=405)
+
+    messages = FubMessageHistory.objects.filter(phone_number=cleaned_phone_number).order_by('timestamp').values('message', 'role','timestamp')
+    response = JsonResponse(list(messages), safe=False)
+    return response
 
 @csrf_exempt  # Disable CSRF protection for this view
 def chat_receiver(request):
@@ -184,22 +193,21 @@ def mark_sms_message(request):
         return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
 
 def is_from_followupboss(context, signature, system_key):
-    """Verifies if a request is from FollowUpBoss using HMAC-SHA256 signature."""
-    calculated_signature = hmac.new(
-        key=system_key.encode(),
-        msg=base64.b64encode(context.encode()),
-        digestmod=hashlib.sha256
-    ).hexdigest()
+    # Encode the context (payload) using base64
+    encoded_context = base64.b64encode(context.encode('utf-8'))
 
+    # Create a SHA256 hash with the base64 encoded value and the system key
+    calculated_signature = hmac.new(system_key.encode('utf-8'), encoded_context, hashlib.sha256).hexdigest()
 
-    #return signature == calculated_signature
-    return True
+    # Compare the calculated signature with the received signature
+    return signature == calculated_signature
 
 # The handler function is temporary to capture some calls
 @csrf_exempt
 def fubhook_handler(request, event_type):
     if request.method == 'POST':
-        input_data = json.loads(request.body)  # Assuming you're using a web framework like Flask or Django
+        input_data = json.loads(request.body)
+        json_payload = request.body.decode('utf-8')
         event_id = input_data['eventId']
         event = input_data['event']
         resource_uri = input_data['uri']
@@ -211,9 +219,7 @@ def fubhook_handler(request, event_type):
             return JsonResponse({'error': 'Webhook data or signature missing'}, status=400)
 
         try:
-            # Verify the request using the serialized body
-        # Verify signature
-            if is_from_followupboss(json.dumps(input_data), signature_from_header, system_key):
+            if is_from_followupboss(json_payload, signature_from_header, system_key):
                 FUBhookEvent.objects.create(event_type=event_type, data=input_data)
                 return JsonResponse({'message': 'Webhook received and verified successfully'}, status=200)
             else:
@@ -223,7 +229,6 @@ def fubhook_handler(request, event_type):
             logger.error(f"Error processing webhook: {str(e)}")
             return JsonResponse({'error': 'Internal server error'}, status=500)
         else:
-            # Respond with an error status code for non-POST requests
             logger.error('Invalid request method')
             return JsonResponse({'error': 'Invalid request method'}, status=400)
 

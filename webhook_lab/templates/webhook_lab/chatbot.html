@@ -79,7 +79,7 @@
             }
 
             $.ajax({
-                url: '/webhook/api/get_messages/' + selectedTopicId + '/', // Dynamic URL with topic_id
+                url: '/webhook/api/get_chat_messages/' + selectedTopicId + '/', // Dynamic URL with topic_id
                 type: 'GET',
                 success: function(response) {
                     $('#chat-display').empty(); // Clear existing messages

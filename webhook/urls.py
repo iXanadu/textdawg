@@ -9,5 +9,6 @@ urlpatterns = [
     path('api/mark_sms_message/', views.mark_sms_message, name='mark_sms_message'),
     path('api/create_topic/', views.create_chat_topic, name='create_topic'),
     path('api/list_topics/', views.list_chat_topics, name='list_topics'),
-    path('api/get_messages/<int:topic_id>/', views.get_chat_messages, name='get_messages'),
+    path('api/get_chat_messages/<int:topic_id>/', views.get_chat_messages, name='get_chat_messages'),
+    path('api/get_sms_messages/<str:phone_number>/', views.get_sms_messages, name='get_sms_messages'),
 ]

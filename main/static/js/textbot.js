@@ -2,6 +2,38 @@ $(document).ready(function() {
     $("#send-button").click(sendMessage);
     $("#user-input").keypress(handleKeyPress);
 
+loadMessageHistory()
+
+    function loadMessageHistory() {
+            var phoneNumber = $("#phone-number").val().trim();
+            if (!phoneNumber) {
+                return;
+            }
+
+            $.ajax({
+                url: '/webhook/api/get_sms_messages/' + phoneNumber + '/', // Dynamic URL with topic_id
+                type: 'GET',
+                success: function(response) {
+                    $('#chat-display').empty(); // Clear existing messages
+
+                    if (response && Array.isArray(response)) {
+                        response.forEach(function(message) {
+                            if (message.role != 'System') {
+                                var formattedMessage = "<div class='message " + (message.role === "AI" ? "response-message" : "user-message") + "'>" + message.message + "</div>";
+                                $("#chat-display").append(formattedMessage);
+                            }
+                        });
+                        $("#chat-display").scrollTop($("#chat-display")[0].scrollHeight);
+                    } else {
+                        console.error("Unexpected response format:", response);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error("Error loading messages:", status, error);
+                }
+            });
+        }
+
     function sendMessage() {
         var phoneNumber = $("#phone-number").val().trim();
         var userInput = $("#user-input").val().trim();

@@ -199,8 +199,10 @@ class FUBApiHandler:
 
         return False
 
-    def get_all_webhooks(self):
+    def get_all_webhooks(self,limit):
         path = f'/v1/webhooks'
+        if limit:
+            path = f"{path}?limit={limit}"
         return (self._make_request('GET', path))
 
     def add_webhook(self,event,url):

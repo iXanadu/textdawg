@@ -11,6 +11,7 @@ import os
 import json
 from main.models import TextCode, OpenAIPrompt
 from googleAPI.googleAPI import GoogleAPI
+from icecream import ic
 
 # import pyowm
 # from pyowm.owm import OWM
@@ -111,19 +112,20 @@ class SMSAIBaseAssistant:
     def get_userinfo_string(self):
         name = "the person"
         if not self.msg_user.firstname:
-            nameStr = "You do not know the name of the person, you should ask"
-            phoneStr = f"Their telephone number is {self.msg_user.phone_number}"
+            nameStr = "NAME:  UNKNOWN - Ask at the first opportunity"
+            phoneStr = f"PHONE:  {self.msg_user.phone_number}"
         else:
             name = self.msg_user.firstname
-            nameStr = f"You are texting with {self.msg_user.firstname} {self.msg_user.lastname}"
-            phoneStr = f"{self.msg_user.firstname}'s phone number is {self.msg_user.phone_number}"
+            nameStr = f"NAME: {self.msg_user.firstname} {self.msg_user.lastname}"
+            phoneStr = f"PHONE: {self.msg_user.phone_number}"
 
         if not self.msg_user.email:
-            emailStr = f"You do not {name}'s know email address, you should ask, but only if appropriate to set an appt"
+            emailStr = f"EMAIL: UNKNOWN Ask, but only if appropriate for contact or ESPECIALLY to set an appointment"
         else:
-            emailStr = f"{name}'s email address is {self.msg_user.email}"
+            emailStr = f"EMAIL: {self.msg_user.email}"
 
         sms_userinfo = f"Information about the person you are texting with:\n{nameStr}\n{phoneStr}\n{emailStr}\n"
+        ic(sms_userinfo)
         return(sms_userinfo)
 
     def get_ai_instructions(self):

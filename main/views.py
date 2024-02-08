@@ -339,7 +339,7 @@ def fub_webhook_toggle(request):
         if (currentStatus == 'Active'):
             api_response = fub_handler.delete_webhook(webhookId)
             newStatus = "Inactive"
-            webhook.webhookId = ''
+            webhook.webhookId = None
             if api_response is None:
                 logger.error(f"Failed to make webhook {newStatus} with for  {webhook.event}")
                 return JsonResponse({'error': 'API call to update webhook failed.'}, status=500)
@@ -386,11 +386,14 @@ def fub_webhook_delete(request, id):
         return JsonResponse({'error': 'Webhook not found.'}, status=404)
 
     webhook_id = webhook.webhookId
+    currentStatus = webhook.status
+
     # Attempt to deregister the webhook via the API
-    api_response = fub_handler.delete_webhook(webhook_id)
-    if api_response is None:
-        logger.error(f"Failed to deregister webhook with ID {webhook_id} via the API.")
-        return JsonResponse({'error': 'Failed to deregister webhook via the API.'}, status=500)
+    if currentStatus is "Active":
+        api_response = fub_handler.delete_webhook(webhook_id)
+        if api_response is None:
+            logger.error(f"Failed to deregister webhook with ID {webhook_id} via the API.")
+            return JsonResponse({'error': 'Failed to deregister webhook via the API.'}, status=500)
 
     # Delete the webhook from the database
     try:

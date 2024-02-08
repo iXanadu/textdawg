@@ -9,3 +9,4 @@ openai
 twilio
 celery
 psycopg2
+icecream
