@@ -8,5 +8,5 @@ duckduckgo-search
 openai
 twilio
 celery
-psycopg2
+psycopg2-binary
 icecream

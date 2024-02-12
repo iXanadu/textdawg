@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
 from django.shortcuts import render, redirect
 import os
 import json
@@ -39,6 +40,11 @@ def test_ai_assistant(request):
     # response = assistant.respond_to_input('1640')
     # c = SMSConversationManager()
     # response = c.respond_to_input('(757) 632-3156','1640')
+
+    scheme = request.scheme
+    x_forwarded_proto = request.META.get('HTTP_X_FORWARDED_PROTO', 'None')
+    response_content = f"Scheme: {scheme}, X-Forwarded-Proto: {x_forwarded_proto}"
+    return HttpResponse(response_content)
 
     f = FUBApiHandler(os.getenv('FUB_API_URL'), os.getenv('FUB_API_KEY'),
                                 os.getenv('FUB_X_SYSTEM'), os.getenv('FUB_X_SYSTEM_KEY'))

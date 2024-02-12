@@ -1,5 +1,6 @@
 import logging
 import json
+from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
@@ -14,6 +15,7 @@ import os
 import hashlib
 import base64
 import hmac
+from icecream import ic
 
 
 logger = logging.getLogger(__name__)
@@ -83,17 +85,35 @@ def sms_receiver(request):
     if request.method == 'POST':
 
         # Get the full request URL
-        url = 'http://textdawg.com/webhook/sms_receiver/'
+        # url = 'http://textdawg.com/webhook/sms_receiver/'
+        urlx = request.build_absolute_uri()
+        url = request.build_absolute_uri(reverse('sms_receiver'))
+
 
         # Get the POST data and headers
         post_vars = request.POST
         twilio_signature = request.headers.get('X-Twilio-Signature')
+        sigx = request.META.get('HTTP_X_TWILIO_SIGNATURE', '')
 
         # Create an instance of the RequestValidator
         validator = RequestValidator(os.getenv('TWILIO_AUTH_TOKEN'))
+        twilio_token = os.getenv('TWILIO_AUTH_TOKEN')
+
+        msg = f"url/urlx:{url}/{urlx}, sig/sigx:{twilio_signature}/{sigx}, auth_token:{twilio_token}"
+        logger.info(msg)
+
+        # Validate the request using its URL, POST data,
+        # and X-TWILIO-SIGNATURE header
+        request_valid = validator.validate(
+            url,
+            request.POST,
+            request.META.get('HTTP_X_TWILIO_SIGNATURE', ''))
+
+        logger.info(f"Validity test: {request_valid}")
 
         # Validate the request
-        if validator.validate(url, post_vars, twilio_signature):
+        #if validator.validate(url, post_vars, twilio_signature):
+        if request_valid:
             x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
             if x_forwarded_for:
                 ip = x_forwarded_for.split(',')[0]
@@ -127,7 +147,7 @@ def sms_receiver(request):
 
             return HttpResponse(sms_resp, status=200)
         else:
-            return HttpResponse('Method not allowed', status=405)
+            return HttpResponse('Validation failed', status=406)
     else:
         return HttpResponse('Method not allowed', status=405)
 
@@ -198,6 +218,9 @@ def is_from_followupboss(context, signature, system_key):
 
     # Create a SHA256 hash with the base64 encoded value and the system key
     calculated_signature = hmac.new(system_key.encode('utf-8'), encoded_context, hashlib.sha256).hexdigest()
+#    logger.info(f"CONTECT:{encoded_context}")
+#    logger.info(f"calc-sig:{calculated_signature}")
+#    logger.info(f"sig:{signature}")
 
     # Compare the calculated signature with the received signature
     return signature == calculated_signature

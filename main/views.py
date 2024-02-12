@@ -365,7 +365,7 @@ def fub_webhook_toggle(request):
 def fub_webhook_list(request):
     try:
         # Retrieve all webhook records from the database
-        webhooks = FubWebhook.objects.all().values('id', 'webhookId','status', 'event', 'url')
+        webhooks = FubWebhook.objects.all().values('id', 'webhookId', 'status', 'event', 'url').order_by('event')
         # Convert the QuerySet to a list of dictionaries
         webhooks_list = list(webhooks)
         return JsonResponse({'webhooks': webhooks_list}, status=200)

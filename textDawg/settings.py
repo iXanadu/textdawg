@@ -21,6 +21,13 @@ ALLOWED_HOSTS = ["127.0.0.1", "textdawg.com", "www.textdawg.com", "45.33.94.207"
 CELERY_BROKER_URL = 'amqp://guest:guest@localhost:5672/'
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 
+# Security settings
+SECURE_SSL_REDIRECT = True
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+
 
 
 
