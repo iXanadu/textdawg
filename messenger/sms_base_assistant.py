@@ -5,7 +5,7 @@ from langchain_community.chat_models import ChatOpenAI
 from langchain_community.tools import DuckDuckGoSearchRun, Tool
 from langchain.agents import initialize_agent, AgentType
 from langchain_community.utilities import GoogleSearchAPIWrapper
-from crm.fub_api_handler import FUBApiHandler
+from FubHandler import FUBApiHandler
 from langchain.globals import set_verbose, set_debug
 import os
 import json
