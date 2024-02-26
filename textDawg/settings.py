@@ -4,32 +4,22 @@ import os
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 load_dotenv()
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-aek1*q7zk3)p8)4nn9^o$3s!ilfs4(9%d&t!k(0o!tcyd9$ccv'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
+DEBUG = os.getenv('DJANGO_DEBUG', 'False') == 'True'
 ALLOWED_HOSTS = ["127.0.0.1", "textdawg.com", "www.textdawg.com", "45.33.94.207"]
 # settings.py
 
 # Celery Settings
-#CELERY_BROKER_URL = 'amqp://textdawg:@T3xtD@wg@45.33.95.100:5432/vhost'
 CELERY_BROKER_URL = 'amqp://guest:guest@localhost:5672/'
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 
 # Security settings
-SECURE_SSL_REDIRECT = True
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-
-
-
-
+SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'False') == 'True'
+SESSION_COOKIE_SECURE = os.getenv('SESSION_COOKIE_SECURE', 'False') == 'True'
+CSRF_COOKIE_SECURE = os.getenv('CSRF_COOKIE_SECURE', 'False') == 'True'
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https') if os.getenv('SECURE_PROXY_SSL_HEADER') else None
 
 LOGGING = {
     'version': 1,
@@ -76,7 +66,6 @@ INSTALLED_APPS = [
     'corsheaders',
     'webhook.apps.WebhookConfig',
     'webhook_lab.apps.WebhookLabConfig',
-    'crm.apps.CrmConfig',
     'messenger.apps.MessengerConfig',
     'main.apps.MainConfig',
     'user_management.apps.UserManagementConfig',
@@ -96,8 +85,6 @@ MIDDLEWARE = [
 CORS_ALLOW_ALL_ORIGINS = True
 CSRF_TRUSTED_ORIGINS = ["http://127.0.0.1", "http://textdawg.com", "http://45.33.94.207",
                         "https://127.0.0.1", "https://textdawg.com", "https://45.33.94.207"]
-
-
 
 ROOT_URLCONF = 'textDawg.urls'
 
@@ -120,11 +107,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'textDawg.wsgi.application'
 
-
-# Database
-# https://docs.djangoproject.com/en/5.0/ref/settings/#databases
-#        'ENGINE': 'django.db.backends.sqlite3',
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
@@ -135,10 +117,6 @@ DATABASES = {
         'PORT': "5432"
     }
 }
-
-
-# Password validation
-# https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -160,25 +138,15 @@ AUTH_PASSWORD_VALIDATORS = [
 # https://docs.djangoproject.com/en/5.0/topics/i18n/
 
 LANGUAGE_CODE = 'en-us'
-
 TIME_ZONE = 'UTC'
-
 USE_I18N = True
-
 USE_TZ = True
 
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.0/howto/static-files/
-
-STATIC_URL = 'static/'
-#STATICFILES_DIRS = ["/var/www/textdawg/static" ]
-#    os.path.join(BASE_DIR, 'staticfiles'),
-
-STATIC_ROOT =  "/var/www/textdawg/static"
-
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
+STATIC_URL = os.getenv('STATIC_URL')
+STATIC_ROOT = os.getenv('STATIC_ROOT')
+# STATICFILES_DIRS = [
+#     os.path.join(BASE_DIR, 'main/static'),
+# ]
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_REDIRECT_URL = '/dashboard/'
