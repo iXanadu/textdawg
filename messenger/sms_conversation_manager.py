@@ -2,14 +2,15 @@ import logging
 from dotenv import load_dotenv
 from django.utils import timezone
 from main.models import FUBMessageUser, FubMessageHistory, OpenAIPrompt
-from langchain.memory import ConversationBufferMemory, ChatMessageHistory
-from crm.fub_api_handler import FUBApiHandler
+from langchain.memory import ChatMessageHistory
+# from langchain.memory.buffer import Input
+from FUBHandler.fub_api_handler import FUBApiHandler
+
 from .sms_base_assistant import SMSAIBaseAssistant
 import os
-
+from icecream import ic
 
 logger = logging.getLogger(__name__)
-
 
 class SMSConversationManager:
     def __init__(self, temperature, model_name):
@@ -18,7 +19,7 @@ class SMSConversationManager:
         self.model_name = model_name
         self.fub_handler = FUBApiHandler(os.getenv('FUB_API_URL'), os.getenv('FUB_API_KEY'),
                                          os.getenv('FUB_X_SYSTEM'), os.getenv('FUB_X_SYSTEM_KEY'))
-        self.assistant = SMSAIBaseAssistant(self.model_temp,self.model_name)
+        self.assistant = SMSAIBaseAssistant(self.model_temp, self.model_name)
         self.server_msgId = 0
         self.user_msgId = 0
 
@@ -50,7 +51,7 @@ class SMSConversationManager:
 
         return msg_user
 
-    def add_message_to_history(self, message_user,  message_text, message_role):
+    def add_message_to_history(self, message_user, message_text, message_role):
         # Create a new MessageHistory instance
         new_message = FubMessageHistory(
             timestamp=timezone.now(),
@@ -103,38 +104,47 @@ class SMSConversationManager:
 
     def process_chat_history(self, phone_number):
         io_records = self.create_complete_io_records(phone_number)
-        chat_history = ConversationBufferMemory(input_key='input',
-                                                memory_key='chat_history',
-                                                return_messages=True)
 
+        chat_history = ChatMessageHistory()
         for input_message, output_message in io_records:
-            input_text = input_message.message if input_message else None
-            output_text = output_message.message if output_message else None
-
-            # Call your save_context function with each pair of input and output
-            chat_history.save_context({"input": input_text}, {"output": output_text})
+            chat_history.add_user_message(input_message.message) if input_message else None
+            chat_history.add_ai_message(output_message.message) if output_message else None
 
         return chat_history
+
+    # def process_chat_history(self, phone_number):
+    #         io_records = self.create_complete_io_records(phone_number)
+    #         chat_history = ConversationBufferMemory(input_key='input',
+    #                                                 memory_key='chat_history',
+    #                                                 return_messages=True)
+    #
+    #         for input_message, output_message in io_records:
+    #             input_text = input_message.message if input_message else None
+    #             output_text = output_message.message if output_message else None
+    #
+    #             # Call your save_context function with each pair of input and output
+    #             chat_history.save_context({"input": input_text}, {"output": output_text})
+    #
+    #         return chat_history
 
     def respond_to_input(self, user_phone, system_phone, user_input):
         msg_user = self.get_or_add_message_user(user_phone, user_input)
         chat_history = self.process_chat_history(user_phone)
+
         self.assistant.setup_agent(chat_history, msg_user)
+        sys_msg = self.assistant.sys_msg
         if msg_user.message_count == 1:
-            prompt = self.assistant.get_ai_instructions()
-            self.add_message_to_history(msg_user, prompt,'System')
+            self.add_message_to_history(msg_user, sys_msg, 'System')
         else:
-            self.fub_handler.log_fub_text_message(False,msg_user.fubId,system_phone,
+            self.fub_handler.log_fub_text_message(False, msg_user.fubId, system_phone,
                                                   msg_user.phone_number, user_input)
 
         response = self.assistant.respond_to_input(user_input)
 
-        self.fub_handler.log_fub_text_message(True, msg_user.fubId,msg_user.phone_number, system_phone,
-                      response['output'])
+        self.fub_handler.log_fub_text_message(True, msg_user.fubId, msg_user.phone_number, system_phone,
+                                              response['output'])
         self.user_msgId = self.add_message_to_history(msg_user, user_input, 'Human')
         self.increment_user_message_count(msg_user)
         self.server_msgId = self.add_message_to_history(msg_user, response['output'], 'AI')
         logger.info(f"Server Msgid = {self.server_msgId}")
         return response
-
-

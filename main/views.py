@@ -9,7 +9,8 @@ from django.views.decorators.http import require_POST, require_GET
 from django.http import JsonResponse, HttpResponseBadRequest
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from .models import OpenAIPrompt, SMSMarkedMessage,FubMessageHistory,FubWebhook
-from FubHandler import FUBApiHandler
+from FUBHandler.fub_api_handler import FUBApiHandler
+
 from django.apps import apps
 import json
 import os

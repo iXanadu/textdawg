@@ -5,7 +5,8 @@ from django.shortcuts import render, redirect
 import os
 import json
 from messenger.sms_conversation_manager import SMSConversationManager
-from crm.fub_api_handler import FUBApiHandler
+from FUBHandler.fub_api_handler import FUBApiHandler
+
 import csv
 
 @login_required(login_url='/login/')

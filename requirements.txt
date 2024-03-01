@@ -1,6 +1,8 @@
 django
 langchain
+langchainhub
 langchain_community
+langchain-openai
 django-cors-headers
 python-dotenv
 google-api-python-client>=2.100.0
