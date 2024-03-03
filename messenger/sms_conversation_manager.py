@@ -24,6 +24,12 @@ class SMSConversationManager:
         self.user_msgId = 0
 
     def get_or_add_message_user(self, phone_number, query=''):
+        tags = ["textDawg Lead", query]
+        stage = "Lead"
+        source = "textDawg"
+        system = "textDawg"
+        message = description = f"User texted {query}"
+
         msg_user = FUBMessageUser.objects.filter(phone_number=phone_number).first()
         if msg_user:
             return msg_user
@@ -43,9 +49,10 @@ class SMSConversationManager:
                 msg_user = FUBMessageUser(phone_number=phone_number, firstname=firstName,
                                           fubId=fubId, lastname=lastName, email=email, message_count=1)
                 msg_user.save()
-                self.fub_handler.add_update_fub_contact(fubId, phone_number, query)
+
+                self.fub_handler.add_update_fub_contact(fubId, phone_number, stage, tags, source, system, message, description)
             else:
-                fubId = self.fub_handler.add_update_fub_contact(0, phone_number, query)
+                fubId = self.fub_handler.add_update_fub_contact(0, phone_number, stage, tags, source, system, message, description)
                 msg_user = FUBMessageUser(phone_number=phone_number, fubId=fubId, message_count=1)
                 msg_user.save()
 
