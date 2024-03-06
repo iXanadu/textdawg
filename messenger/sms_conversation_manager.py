@@ -1,16 +1,16 @@
 import logging
 from dotenv import load_dotenv
 from django.utils import timezone
-from main.models import FUBMessageUser, FubMessageHistory, OpenAIPrompt
+from main.models import FUBMessageUser, FubMessageHistory
 from langchain.memory import ChatMessageHistory
-# from langchain.memory.buffer import Input
 from FUBHandler.fub_api_handler import FUBApiHandler
-
 from .sms_base_assistant import SMSAIBaseAssistant
 import os
-from icecream import ic
+
+# from icecream import ic
 
 logger = logging.getLogger(__name__)
+
 
 class SMSConversationManager:
     def __init__(self, temperature, model_name):
@@ -28,7 +28,10 @@ class SMSConversationManager:
         stage = "Lead"
         source = "textDawg"
         system = "textDawg"
-        message = description = f"User texted {query}"
+        event_type = "Inquiry"
+
+        message = f"User texted {query}"
+        phones = self.fub_handler.build_phone_packet(None, phone_number, "Mobile", "Valid", True)
 
         msg_user = FUBMessageUser.objects.filter(phone_number=phone_number).first()
         if msg_user:
@@ -36,24 +39,32 @@ class SMSConversationManager:
         else:
             response = self.fub_handler.get_contact_from_fub(0, phone_number)
             if response:
-                firstName = ''
-                lastName = ''
-                fubId = response["fubId"]
+                first_name = ''
+                last_name = ''
+                fub_id = response["fubId"]
                 if response["firstName"] != "No name":
-                    firstName = response["firstName"]
+                    first_name = response["firstName"]
                 if response["lastName"] != "":
-                    lastName = response["lastName"]
+                    last_name = response["lastName"]
                 email = response.get('emails', [{}])[0].get('value', 'No email found')
 
                 logger.info(response)
-                msg_user = FUBMessageUser(phone_number=phone_number, firstname=firstName,
-                                          fubId=fubId, lastname=lastName, email=email, message_count=1)
+                msg_user = FUBMessageUser(phone_number=phone_number, firstname=first_name,
+                                          fubId=fub_id, lastname=last_name, email=email, message_count=1)
                 msg_user.save()
-
-                self.fub_handler.add_update_fub_contact(fubId, phone_number, stage, tags, source, system, message, description)
+                # self.fub_handler.add_update_fub_contact(fubId, type, phone_number, stage, tags,
+                # source, system, message, description)
+                person = self.fub_handler.build_person_packet(False, fub_id, "", "", stage, source, 0, 0, None, phones,
+                                                              None, tags)
+                self.fub_handler.add_update_fub_contact(person, event_type, message, source, system, None)
             else:
-                fubId = self.fub_handler.add_update_fub_contact(0, phone_number, stage, tags, source, system, message, description)
-                msg_user = FUBMessageUser(phone_number=phone_number, fubId=fubId, message_count=1)
+                # fubId = self.fub_handler.add_update_fub_contact(0, type, phone_number, stage, tags,
+                # source, system, message, description)
+                person = self.fub_handler.build_person_packet(False, 0, "", "", stage, source, 0, 0, None, phones, None,
+                                                              tags)
+                response = self.fub_handler.add_update_fub_contact(person, event_type, message, source, system, None)
+                fub_id = response['id']
+                msg_user = FUBMessageUser(phone_number=phone_number, fubId=fub_id, message_count=1)
                 msg_user.save()
 
         return msg_user
@@ -153,5 +164,5 @@ class SMSConversationManager:
         self.user_msgId = self.add_message_to_history(msg_user, user_input, 'Human')
         self.increment_user_message_count(msg_user)
         self.server_msgId = self.add_message_to_history(msg_user, response['output'], 'AI')
-        logger.info(f"Server Msgid = {self.server_msgId}")
+        logger.info(f"Server Message ID = {self.server_msgId}")
         return response
