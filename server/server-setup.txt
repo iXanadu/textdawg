@@ -1,3 +1,9 @@
+Linode PostGress - Auth Token: 4521737e9d380c745d2d43de02709dab306f1ed42601729bef0882c21dc0d4ed
+postgres user pw @p1ckl3s
+textdawg db user pw @T3xtD@wg
+
+
+
 apt-get update && apt-get upgrade
 hostnamectl set-hostname xxxx-server-name
 
@@ -115,17 +121,6 @@ sudo systemctl restart gunicorn
 
 
 TEST EVERYTHING
-
-
-
-
-
-
-
-
-
-
-
 
 
 
